@@ -158,3 +158,21 @@ input:focus {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ─── Admin layout: hide global nav and footer ────── */
+.admin-layout {
+  margin-top: -56px; /* offset the pt-14 from body > div */
+}
+
+/* When inside admin-layout, hide global nav and footer */
+body:has(.admin-layout) > nav {
+  display: none !important;
+}
+
+body:has(.admin-layout) > footer {
+  display: none !important;
+}
+
+body:has(.admin-layout) > div {
+  padding-top: 0 !important;
+}
