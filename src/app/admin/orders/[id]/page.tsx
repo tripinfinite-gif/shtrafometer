@@ -38,6 +38,38 @@ const RISK_CONFIG: Record<RiskLevel, { label: string; color: string }> = {
   low: { label: 'Низкий риск', color: '#22C55E' },
 };
 
+const CATEGORY_ORDER = [
+  'personal-data', 'localization', 'info-law', 'advertising',
+  'language', 'consumer', 'content', 'ecommerce', 'tech', 'seo',
+] as const;
+
+const CATEGORY_CONFIG: Record<string, { label: string; sublabel: string; isTech: boolean }> = {
+  'personal-data': { label: 'Персональные данные', sublabel: '152-ФЗ', isTech: false },
+  'localization': { label: 'Локализация данных', sublabel: '152-ФЗ', isTech: false },
+  'info-law': { label: 'Информационная безопасность', sublabel: '149-ФЗ', isTech: false },
+  'advertising': { label: 'Реклама', sublabel: '38-ФЗ', isTech: false },
+  'language': { label: 'Русский язык', sublabel: '168-ФЗ', isTech: false },
+  'consumer': { label: 'Права потребителей', sublabel: 'ЗоЗПП', isTech: false },
+  'content': { label: 'Контент и маркировка', sublabel: '436-ФЗ', isTech: false },
+  'ecommerce': { label: 'Электронная коммерция', sublabel: '54-ФЗ', isTech: false },
+  'tech': { label: 'Техническая защита', sublabel: 'Рекомендации', isTech: true },
+  'seo': { label: 'Технический SEO', sublabel: 'Рекомендации', isTech: true },
+};
+
+function getCategory(id: string): string {
+  if (['sec-04','sec-05','sec-06','sec-07','sec-08','sec-09','sec-10'].includes(id)) return 'tech';
+  if (id.startsWith('seo-')) return 'seo';
+  if (id.startsWith('pd-') || id.startsWith('hidden-')) return 'personal-data';
+  if (id.startsWith('loc-')) return 'localization';
+  if (id.startsWith('ad-')) return 'advertising';
+  if (id.startsWith('lang-')) return 'language';
+  if (id.startsWith('con-')) return 'consumer';
+  if (id.startsWith('cnt-')) return 'content';
+  if (id.startsWith('ecom-')) return 'ecommerce';
+  if (id.startsWith('sec-')) return 'info-law';
+  return 'personal-data';
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────
 
 export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -277,25 +309,75 @@ function CheckResults({ check }: { check: CheckResponse }) {
         </div>
       )}
 
-      {/* Violations */}
-      {check.violations.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-gray-800">Нарушения ({check.violations.length})</h2>
-          {check.violations.map((v) => (
-            <ViolationCard key={v.id} violation={v} />
-          ))}
-        </div>
-      )}
+      {/* Grouped Violations & Warnings by Category */}
+      {(check.violations.length > 0 || check.warnings.length > 0) && (() => {
+        const grouped: Record<string, { violations: Violation[]; warnings: Warning[] }> = {};
+        for (const v of check.violations) {
+          const cat = getCategory(v.id);
+          if (!grouped[cat]) grouped[cat] = { violations: [], warnings: [] };
+          grouped[cat].violations.push(v);
+        }
+        for (const w of check.warnings) {
+          const cat = getCategory(w.id);
+          if (!grouped[cat]) grouped[cat] = { violations: [], warnings: [] };
+          grouped[cat].warnings.push(w);
+        }
+        const sortedKeys = CATEGORY_ORDER.filter((k) => grouped[k]);
+        Object.keys(grouped).forEach((k) => {
+          if (!sortedKeys.includes(k as any)) sortedKeys.push(k as any);
+        });
 
-      {/* Warnings */}
-      {check.warnings.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-gray-800">Предупреждения ({check.warnings.length})</h2>
-          {check.warnings.map((w) => (
-            <WarningCard key={w.id} warning={w} />
-          ))}
-        </div>
-      )}
+        const lawCats = sortedKeys.filter((k) => !CATEGORY_CONFIG[k]?.isTech);
+        const techCats = sortedKeys.filter((k) => CATEGORY_CONFIG[k]?.isTech);
+
+        function renderGroup(catKey: string, isTech: boolean) {
+          const cfg = CATEGORY_CONFIG[catKey] || { label: catKey, sublabel: '', isTech: false };
+          const g = grouped[catKey];
+          const total = g.violations.length + g.warnings.length;
+          const maxFine = g.violations.reduce((s, v) => s + v.maxFine, 0);
+          return (
+            <div key={catKey} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full" style={{ background: isTech ? '#7B68EE' : '#EF4444' }} />
+                  <h3 className="text-sm font-semibold text-gray-800">{cfg.label}</h3>
+                  <span className="text-xs text-gray-400">{cfg.sublabel}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400">{total}</span>
+                  {maxFine > 0 && <span className="text-xs font-semibold text-red">до {formatMoney(maxFine)}</span>}
+                </div>
+              </div>
+              {g.violations.map((v) => <ViolationCard key={v.id} violation={v} />)}
+              {g.warnings.map((w) => <WarningCard key={w.id} warning={w} />)}
+            </div>
+          );
+        }
+
+        return (
+          <>
+            {lawCats.length > 0 && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Нарушения законодательства ({check.violations.filter(v => !CATEGORY_CONFIG[getCategory(v.id)]?.isTech).length})
+                </h2>
+                {lawCats.map((k) => renderGroup(k, false))}
+              </div>
+            )}
+            {techCats.length > 0 && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  Технические рекомендации ({
+                    check.violations.filter(v => CATEGORY_CONFIG[getCategory(v.id)]?.isTech).length +
+                    check.warnings.filter(w => CATEGORY_CONFIG[getCategory(w.id)]?.isTech).length
+                  })
+                </h2>
+                {techCats.map((k) => renderGroup(k, true))}
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {/* SEO Audit */}
       <SeoAuditSection check={check} />

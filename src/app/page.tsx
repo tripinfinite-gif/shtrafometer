@@ -412,130 +412,246 @@ export default function Home() {
             )}
           </div>
 
-          {/* Violations */}
-          {result.violations.length > 0 && (
-            <section className="mb-8 animate-fade-up animate-fade-up-delay-1">
-              <h2 className="text-[13px] text-gray-400 uppercase tracking-widest mb-4 px-1">
-                Нарушения
-              </h2>
-              <div className="space-y-2">
-                {result.violations.map((v) => {
-                  const sev = SEVERITY[v.severity];
-                  const isOpen = expanded.has(v.id);
-                  return (
-                    <div
-                      key={v.id}
-                      className={`card rounded-2xl border-l-[3px] ${sev.css} overflow-hidden transition-all duration-300`}
-                    >
-                      <button
-                        onClick={() => toggle(v.id)}
-                        className="w-full text-left px-6 py-5 flex items-start gap-4 cursor-pointer"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-2.5">
-                              <span
-                                className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                                style={{ color: sev.color, background: sev.bg }}
-                              >
-                                {sev.label}
-                              </span>
-                              <h3 className="text-[15px] font-medium text-gray-800 leading-snug">
-                                {v.title}
-                              </h3>
-                            </div>
-                            <span className="text-[10px] text-gray-400 bg-gray-100 rounded px-1.5 py-0.5 font-mono shrink-0">
-                              {v.id}
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap items-center gap-3 mt-2 pl-0.5">
-                            <span className="text-[14px] font-semibold tabular-nums" style={{ color: sev.color }}>
-                              {formatMoney(v.minFine)} — {formatMoney(v.maxFine)}
-                            </span>
-                            <span className="text-[12px] text-gray-400">
-                              {v.law} {v.article}
-                            </span>
-                          </div>
+          {/* ────── Grouped Results by Category ────── */}
+          {(result.violations.length > 0 || result.warnings.length > 0) && (() => {
+            // Category config
+            const CATEGORY_ORDER = [
+              'personal-data', 'localization', 'info-law', 'advertising',
+              'language', 'consumer', 'content', 'ecommerce', 'tech', 'seo',
+            ] as const;
+
+            const CATEGORY_CONFIG: Record<string, { label: string; sublabel: string; isTech: boolean }> = {
+              'personal-data': { label: 'Персональные данные', sublabel: '152-ФЗ', isTech: false },
+              'localization': { label: 'Локализация данных', sublabel: '152-ФЗ', isTech: false },
+              'info-law': { label: 'Информационная безопасность', sublabel: '149-ФЗ', isTech: false },
+              'advertising': { label: 'Реклама', sublabel: '38-ФЗ', isTech: false },
+              'language': { label: 'Русский язык', sublabel: '168-ФЗ', isTech: false },
+              'consumer': { label: 'Права потребителей', sublabel: 'ЗоЗПП', isTech: false },
+              'content': { label: 'Контент и маркировка', sublabel: '436-ФЗ', isTech: false },
+              'ecommerce': { label: 'Электронная коммерция', sublabel: '54-ФЗ', isTech: false },
+              'tech': { label: 'Техническая защита', sublabel: 'Рекомендации по безопасности', isTech: true },
+              'seo': { label: 'Технический SEO', sublabel: 'Рекомендации по оптимизации', isTech: true },
+            };
+
+            function getCategory(id: string): string {
+              if (['sec-04','sec-05','sec-06','sec-07','sec-08','sec-09','sec-10'].includes(id)) return 'tech';
+              if (id.startsWith('seo-')) return 'seo';
+              if (id.startsWith('pd-') || id.startsWith('hidden-')) return 'personal-data';
+              if (id.startsWith('loc-')) return 'localization';
+              if (id.startsWith('ad-')) return 'advertising';
+              if (id.startsWith('lang-')) return 'language';
+              if (id.startsWith('con-')) return 'consumer';
+              if (id.startsWith('cnt-')) return 'content';
+              if (id.startsWith('ecom-')) return 'ecommerce';
+              if (id.startsWith('sec-')) return 'info-law';
+              return 'personal-data';
+            }
+
+            // Group violations & warnings
+            const grouped: Record<string, { violations: Violation[]; warnings: Warning[] }> = {};
+            for (const v of result.violations) {
+              const cat = getCategory(v.id);
+              if (!grouped[cat]) grouped[cat] = { violations: [], warnings: [] };
+              grouped[cat].violations.push(v);
+            }
+            for (const w of result.warnings) {
+              const cat = getCategory(w.id);
+              if (!grouped[cat]) grouped[cat] = { violations: [], warnings: [] };
+              grouped[cat].warnings.push(w);
+            }
+
+            // Sort: law-based first, then tech
+            const sortedKeys = CATEGORY_ORDER.filter((k) => grouped[k]);
+            // Add any uncategorized
+            Object.keys(grouped).forEach((k) => {
+              if (!sortedKeys.includes(k as any)) sortedKeys.push(k as any);
+            });
+
+            const lawCategories = sortedKeys.filter((k) => !CATEGORY_CONFIG[k]?.isTech);
+            const techCategories = sortedKeys.filter((k) => CATEGORY_CONFIG[k]?.isTech);
+
+            function renderViolation(v: Violation) {
+              const sev = SEVERITY[v.severity];
+              const isOpen = expanded.has(v.id);
+              return (
+                <div
+                  key={v.id}
+                  className={`card rounded-2xl border-l-[3px] ${sev.css} overflow-hidden transition-all duration-300`}
+                >
+                  <button
+                    onClick={() => toggle(v.id)}
+                    className="w-full text-left px-6 py-5 flex items-start gap-4 cursor-pointer"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                            style={{ color: sev.color, background: sev.bg }}
+                          >
+                            {sev.label}
+                          </span>
+                          <h3 className="text-[15px] font-medium text-gray-800 leading-snug">
+                            {v.title}
+                          </h3>
                         </div>
-                        <ChevronDown open={isOpen} className="text-gray-400 mt-1.5" />
-                      </button>
-
-                      <div className={`grid transition-all duration-300 ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
-                        <div className="overflow-hidden">
-                          <div className="px-6 pb-6 pt-2 space-y-4 border-t border-gray-100">
-                            <p className="text-[14px] text-gray-500 leading-relaxed">{v.description}</p>
-
-                            {v.details.length > 0 && (
-                              <div className="space-y-2">
-                                {v.details.map((d, i) => (
-                                  <div key={i} className="flex items-start gap-2.5 text-[13px] text-gray-500">
-                                    <span className="w-1 h-1 rounded-full bg-gray-300 mt-2 shrink-0" />
-                                    <span className="break-all">{d}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {v.recommendation && (
-                              <div className="flex items-start gap-2.5 rounded-xl bg-primary-lighter border border-primary-light px-4 py-3">
-                                <ArrowIcon />
-                                <p className="text-[13px] text-gray-700 leading-relaxed">{v.recommendation}</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        <span className="text-[10px] text-gray-400 bg-gray-100 rounded px-1.5 py-0.5 font-mono shrink-0">
+                          {v.id}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 mt-2 pl-0.5">
+                        <span className="text-[14px] font-semibold tabular-nums" style={{ color: sev.color }}>
+                          {formatMoney(v.minFine)} — {formatMoney(v.maxFine)}
+                        </span>
+                        <span className="text-[12px] text-gray-400">
+                          {v.law} {v.article}
+                        </span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
+                    <ChevronDown open={isOpen} className="text-gray-400 mt-1.5" />
+                  </button>
 
-          {/* Warnings */}
-          {result.warnings.length > 0 && (
-            <section className="mb-8 animate-fade-up animate-fade-up-delay-2">
-              <h2 className="text-[13px] text-gray-400 uppercase tracking-widest mb-4 px-1">
-                Предупреждения
-              </h2>
-              <div className="space-y-2">
-                {result.warnings.map((w) => {
-                  const isOpen = expanded.has(w.id);
-                  return (
-                    <div key={w.id} className="card rounded-2xl border-l-[3px] severity-medium overflow-hidden">
-                      <button
-                        onClick={() => toggle(w.id)}
-                        className="w-full text-left px-6 py-5 flex items-start gap-4 cursor-pointer"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-[15px] font-medium text-gray-800 leading-snug mb-2">{w.title}</h3>
-                          <div className="flex flex-wrap items-center gap-3">
-                            <span className="text-[14px] font-semibold text-orange">{w.potentialFine}</span>
-                            <span className="text-[12px] text-gray-400">{w.law} {w.article}</span>
-                          </div>
-                        </div>
-                        <ChevronDown open={isOpen} className="text-gray-400 mt-1.5" />
-                      </button>
+                  <div className={`grid transition-all duration-300 ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+                    <div className="overflow-hidden">
+                      <div className="px-6 pb-6 pt-2 space-y-4 border-t border-gray-100">
+                        <p className="text-[14px] text-gray-500 leading-relaxed">{v.description}</p>
 
-                      <div className={`grid transition-all duration-300 ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
-                        <div className="overflow-hidden">
-                          <div className="px-6 pb-6 pt-2 space-y-4 border-t border-gray-100">
-                            <p className="text-[14px] text-gray-500 leading-relaxed">{w.description}</p>
-                            {w.recommendation && (
-                              <div className="flex items-start gap-2.5 rounded-xl bg-primary-lighter border border-primary-light px-4 py-3">
-                                <ArrowIcon />
-                                <p className="text-[13px] text-gray-700 leading-relaxed">{w.recommendation}</p>
+                        {v.details.length > 0 && (
+                          <div className="space-y-2">
+                            {v.details.map((d, i) => (
+                              <div key={i} className="flex items-start gap-2.5 text-[13px] text-gray-500">
+                                <span className="w-1 h-1 rounded-full bg-gray-300 mt-2 shrink-0" />
+                                <span className="break-all">{d}</span>
                               </div>
-                            )}
+                            ))}
                           </div>
-                        </div>
+                        )}
+
+                        {v.recommendation && (
+                          <div className="flex items-start gap-2.5 rounded-xl bg-primary-lighter border border-primary-light px-4 py-3">
+                            <ArrowIcon />
+                            <p className="text-[13px] text-gray-700 leading-relaxed">{v.recommendation}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
+                  </div>
+                </div>
+              );
+            }
+
+            function renderWarning(w: Warning) {
+              const isOpen = expanded.has(w.id);
+              return (
+                <div key={w.id} className="card rounded-2xl border-l-[3px] severity-medium overflow-hidden">
+                  <button
+                    onClick={() => toggle(w.id)}
+                    className="w-full text-left px-6 py-5 flex items-start gap-4 cursor-pointer"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[15px] font-medium text-gray-800 leading-snug mb-2">{w.title}</h3>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-[14px] font-semibold text-orange">{w.potentialFine}</span>
+                        <span className="text-[12px] text-gray-400">{w.law} {w.article}</span>
+                      </div>
+                    </div>
+                    <ChevronDown open={isOpen} className="text-gray-400 mt-1.5" />
+                  </button>
+
+                  <div className={`grid transition-all duration-300 ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+                    <div className="overflow-hidden">
+                      <div className="px-6 pb-6 pt-2 space-y-4 border-t border-gray-100">
+                        <p className="text-[14px] text-gray-500 leading-relaxed">{w.description}</p>
+                        {w.recommendation && (
+                          <div className="flex items-start gap-2.5 rounded-xl bg-primary-lighter border border-primary-light px-4 py-3">
+                            <ArrowIcon />
+                            <p className="text-[13px] text-gray-700 leading-relaxed">{w.recommendation}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            function renderCategorySection(catKey: string, idx: number, isTechGroup: boolean) {
+              const cfg = CATEGORY_CONFIG[catKey] || { label: catKey, sublabel: '', isTech: false };
+              const g = grouped[catKey];
+              const totalIssues = g.violations.length + g.warnings.length;
+              const totalMaxFine = g.violations.reduce((s, v) => s + v.maxFine, 0);
+
+              return (
+                <section key={catKey} className={`mb-6 animate-fade-up ${idx > 0 ? 'animate-fade-up-delay-1' : ''}`}>
+                  {/* Category Header */}
+                  <div className={`flex items-center justify-between mb-3 px-1 ${isTechGroup ? '' : ''}`}>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ background: isTechGroup ? '#7B68EE' : '#EF4444' }}
+                      />
+                      <div>
+                        <h2 className="text-[15px] font-semibold text-gray-800 leading-tight">
+                          {cfg.label}
+                        </h2>
+                        <p className="text-[11px] text-gray-400">{cfg.sublabel}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-[12px] text-gray-400">
+                        {totalIssues} {pluralize(totalIssues, 'проблема', 'проблемы', 'проблем')}
+                      </span>
+                      {totalMaxFine > 0 && (
+                        <span className="text-[13px] font-semibold text-red tabular-nums">
+                          до {formatMoney(totalMaxFine)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {g.violations.map(renderViolation)}
+                    {g.warnings.map(renderWarning)}
+                  </div>
+                </section>
+              );
+            }
+
+            return (
+              <>
+                {/* Law-based violations */}
+                {lawCategories.length > 0 && (
+                  <div className="mb-10 animate-fade-up animate-fade-up-delay-1">
+                    <div className="flex items-center gap-3 mb-6 px-1">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+                        <path d="M8 1L2 4V7.5C2 11 4.5 13.8 8 15C11.5 13.8 14 11 14 7.5V4L8 1Z" stroke="#EF4444" strokeWidth="1.5" strokeLinejoin="round" />
+                      </svg>
+                      <h2 className="text-[13px] text-gray-400 uppercase tracking-widest">
+                        Нарушения законодательства
+                      </h2>
+                    </div>
+                    {lawCategories.map((k, i) => renderCategorySection(k, i, false))}
+                  </div>
+                )}
+
+                {/* Technical checks */}
+                {techCategories.length > 0 && (
+                  <div className="mb-10 animate-fade-up animate-fade-up-delay-2">
+                    <div className="flex items-center gap-3 mb-6 px-1">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0">
+                        <path d="M6.5 1.5L2.5 5.5V10.5L6.5 14.5H10.5L14.5 10.5V5.5L10.5 1.5H6.5Z" stroke="#7B68EE" strokeWidth="1.5" strokeLinejoin="round" />
+                        <path d="M8 5V8.5M8 10.5V11" stroke="#7B68EE" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                      <h2 className="text-[13px] text-gray-400 uppercase tracking-widest">
+                        Технические рекомендации
+                      </h2>
+                    </div>
+                    {techCategories.map((k, i) => renderCategorySection(k, i, true))}
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           {/* No issues */}
           {result.violations.length === 0 && result.warnings.length === 0 && (
