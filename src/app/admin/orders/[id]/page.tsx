@@ -431,9 +431,11 @@ function ViolationCard({ violation: v }: { violation: Violation }) {
         <p className="text-xs text-gray-500 mb-1">
           {v.law}, {v.article}
         </p>
-        <p className="text-xs text-red">
-          Штраф: {formatMoney(v.minFine)} — {formatMoney(v.maxFine)}
-        </p>
+        {v.maxFine > 0 && (
+          <p className="text-xs text-red">
+            Штраф: {formatMoney(v.minFine)} — {formatMoney(v.maxFine)}
+          </p>
+        )}
       </div>
 
       {expanded && (

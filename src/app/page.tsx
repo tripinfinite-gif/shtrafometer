@@ -500,9 +500,11 @@ export default function Home() {
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-3 mt-2 pl-0.5">
-                        <span className="text-[14px] font-semibold tabular-nums" style={{ color: sev.color }}>
-                          {formatMoney(v.minFine)} — {formatMoney(v.maxFine)}
-                        </span>
+                        {v.maxFine > 0 && (
+                          <span className="text-[14px] font-semibold tabular-nums" style={{ color: sev.color }}>
+                            {formatMoney(v.minFine)} — {formatMoney(v.maxFine)}
+                          </span>
+                        )}
                         <span className="text-[12px] text-gray-400">
                           {v.law} {v.article}
                         </span>
