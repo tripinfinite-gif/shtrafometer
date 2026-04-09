@@ -1,7 +1,11 @@
 import type { CheerioAPI } from 'cheerio';
 import type { Violation, Warning, PassedCheck, CheckResult } from './types';
 
-export function checkPersonalData($: CheerioAPI, html: string): CheckResult {
+export async function checkPersonalData(
+  $: CheerioAPI,
+  html: string,
+  baseUrl: string
+): Promise<CheckResult> {
   const violations: Violation[] = [];
   const warnings: Warning[] = [];
   const passed: PassedCheck[] = [];
@@ -38,8 +42,15 @@ export function checkPersonalData($: CheerioAPI, html: string): CheckResult {
 
     if (matchesText || matchesHref) {
       privacyLinkFound = true;
-      // Check if inside footer
-      if ($el.closest('footer').length > 0) {
+      // Check if inside footer — both <footer> tag and elements with class/id "footer"
+      const inFooterTag = $el.closest('footer').length > 0;
+      const inFooterClass = $el.closest('[class*="footer"], [id*="footer"]').length > 0;
+      // Also check if in the bottom 20% of the DOM
+      const allElements = $('body *');
+      const totalElements = allElements.length;
+      const elIndex = allElements.index($el);
+      const inBottomPortion = totalElements > 0 && elIndex > totalElements * 0.8;
+      if (inFooterTag || inFooterClass || inBottomPortion) {
         privacyLinkInFooter = true;
       }
     }
@@ -330,6 +341,306 @@ export function checkPersonalData($: CheerioAPI, html: string): CheckResult {
       title: 'Баннер cookie обнаружен',
       module: MODULE,
     });
+  }
+
+  // ─── pd-03 & pd-04: Privacy policy content checks ─────────────────
+  // Find the privacy policy URL for fetching
+  let privacyUrl: string | null = null;
+  $('a').each((_, el) => {
+    if (privacyUrl) return;
+    const $el = $(el);
+    const text = $el.text();
+    const href = $el.attr('href') || '';
+
+    const matchesText = textPatterns.some((p) => p.test(text));
+    const matchesHref = hrefPatterns.some((p) => p.test(href));
+
+    if ((matchesText || matchesHref) && href) {
+      try {
+        privacyUrl = new URL(href, baseUrl).toString();
+      } catch {
+        // Ignore invalid URLs
+      }
+    }
+  });
+
+  let policyText = '';
+  let policyFetched = false;
+
+  if (privacyUrl) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch(privacyUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept-Language': 'ru-RU,ru;q=0.9',
+        },
+      });
+      clearTimeout(timeout);
+      if (response.ok) {
+        policyText = await response.text();
+        policyFetched = true;
+      }
+    } catch {
+      // Fetch failed — will issue warnings instead of violations
+    }
+  }
+
+  if (policyFetched && policyText) {
+    const policyLower = policyText.toLowerCase();
+    // pd-03: Required sections in privacy policy
+    const requiredSections = [
+      { keyword: 'цел', label: 'цели обработки' },
+      { keyword: 'категори', label: 'категории данных' },
+      { keyword: 'срок', label: 'сроки обработки' },
+      { keyword: 'хранени', label: 'хранение данных' },
+      { keyword: 'уничтожени', label: 'уничтожение данных' },
+    ];
+
+    const missingSections = requiredSections.filter(
+      (s) => !policyLower.includes(s.keyword)
+    );
+
+    if (missingSections.length > 0) {
+      violations.push({
+        id: 'pd-03',
+        module: MODULE,
+        law: LAW,
+        article: 'ст. 13.11 ч.3 КоАП',
+        severity: 'medium',
+        title: 'Политика конфиденциальности не содержит обязательных разделов',
+        description:
+          'В политике конфиденциальности отсутствуют обязательные разделы, ' +
+          'предусмотренные ст. 18.1 152-ФЗ.',
+        minFine: 150000,
+        maxFine: 300000,
+        details: missingSections.map(
+          (s) => `Не найден раздел: ${s.label}`
+        ),
+        recommendation:
+          'Дополните политику конфиденциальности разделами: цели обработки, категории данных, ' +
+          'сроки обработки, условия хранения и уничтожения персональных данных.',
+      });
+    } else {
+      passed.push({
+        id: 'pd-03',
+        title: 'Политика конфиденциальности содержит обязательные разделы',
+        module: MODULE,
+      });
+    }
+
+    // pd-04: Third parties listed in policy
+    const thirdPartyPatterns = [/трет/i, /передач/i, /получател/i];
+    const hasThirdParty = thirdPartyPatterns.some((p) => p.test(policyText));
+
+    if (!hasThirdParty) {
+      violations.push({
+        id: 'pd-04',
+        module: MODULE,
+        law: LAW,
+        article: 'ст. 13.11 ч.3 КоАП',
+        severity: 'medium',
+        title: 'В политике не указаны третьи лица — получатели данных',
+        description:
+          'В политике конфиденциальности не обнаружена информация о передаче персональных данных третьим лицам.',
+        minFine: 150000,
+        maxFine: 300000,
+        details: [
+          'Не найдены упоминания: «третьи лица», «передача», «получатели»',
+        ],
+        recommendation:
+          'Укажите в политике перечень третьих лиц, которым могут передаваться персональные данные, и цели такой передачи.',
+      });
+    } else {
+      passed.push({
+        id: 'pd-04',
+        title: 'В политике указаны третьи лица — получатели данных',
+        module: MODULE,
+      });
+    }
+  } else if (privacyLinkFound) {
+    // Could not fetch policy — issue warnings instead
+    warnings.push({
+      id: 'pd-03',
+      title: 'Не удалось проверить содержание политики конфиденциальности',
+      description:
+        'Ссылка на политику конфиденциальности найдена, но не удалось загрузить документ для проверки обязательных разделов.',
+      law: LAW,
+      article: 'ст. 13.11 ч.3 КоАП',
+      potentialFine: '150 000 — 300 000 руб.',
+      recommendation:
+        'Убедитесь, что политика конфиденциальности содержит разделы: цели обработки, категории данных, сроки, хранение, уничтожение.',
+    });
+    warnings.push({
+      id: 'pd-04',
+      title: 'Не удалось проверить наличие информации о третьих лицах в политике',
+      description:
+        'Не удалось загрузить политику конфиденциальности для проверки упоминания третьих лиц.',
+      law: LAW,
+      article: 'ст. 13.11 ч.3 КоАП',
+      potentialFine: '150 000 — 300 000 руб.',
+      recommendation:
+        'Укажите в политике перечень третьих лиц, которым передаются персональные данные.',
+    });
+  }
+
+  // ─── pd-06: Consent as separate document (since 01.09.2025) ────────
+  {
+    let hasSeperateConsentDoc = false;
+    const consentLinkPatterns = [
+      /соглас\S*\s+на\s+обработк/i,
+      /соглас\S*\s+на\s+персональн/i,
+      /соглас\S*\s+субъект/i,
+    ];
+
+    $('a').each((_, el) => {
+      const $el = $(el);
+      const text = $el.text();
+      const href = ($el.attr('href') || '').toLowerCase();
+
+      // Skip if it's the privacy policy link or offer
+      const isPrivacy = hrefPatterns.some((p) => p.test(href));
+      const isOffer =
+        /offer|oferta|оферт/i.test(href) || /оферт/i.test(text);
+
+      if (isPrivacy || isOffer) return;
+
+      if (consentLinkPatterns.some((p) => p.test(text))) {
+        hasSeperateConsentDoc = true;
+      }
+    });
+
+    if (!hasSeperateConsentDoc) {
+      warnings.push({
+        id: 'pd-06',
+        title: 'Не найден отдельный документ согласия на обработку ПД',
+        description:
+          'С 01.09.2025 согласие на обработку персональных данных рекомендуется оформлять ' +
+          'как отдельный документ, не входящий в политику конфиденциальности или оферту.',
+        law: LAW,
+        article: 'ст. 9 152-ФЗ',
+        potentialFine: '300 000 — 700 000 руб.',
+        recommendation:
+          'Разместите на сайте отдельный документ «Согласие на обработку персональных данных» ' +
+          'со ссылкой из форм сбора данных.',
+      });
+    } else {
+      passed.push({
+        id: 'pd-06',
+        title: 'Отдельный документ согласия на обработку ПД обнаружен',
+        module: MODULE,
+      });
+    }
+  }
+
+  // ─── pd-07: Separate checkboxes for PD and newsletter ─────────────
+  {
+    let hasFormWithSeparateCheckboxes = false;
+    let hasSubscriptionForm = false;
+
+    forms.each((_, formEl) => {
+      const $form = $(formEl);
+      const formText = $form.text().toLowerCase();
+
+      // Check if this is a subscription-like form
+      const isSubscription =
+        /подписк/i.test(formText) ||
+        /рассылк/i.test(formText) ||
+        /newsletter/i.test(formText) ||
+        /новости/i.test(formText);
+
+      if (!isSubscription) return;
+      hasSubscriptionForm = true;
+
+      // Count distinct consent checkboxes
+      const checkboxes = $form.find('input[type="checkbox"]');
+      let pdCheckboxCount = 0;
+      let newsletterCheckboxCount = 0;
+
+      checkboxes.each((_, cbEl) => {
+        const $cb = $(cbEl);
+        const parent = $cb.parent();
+        const label = $form.find(`label[for="${$cb.attr('id')}"]`);
+        const nearbyText = (parent.text() + ' ' + label.text()).toLowerCase();
+
+        if (/соглас/i.test(nearbyText) && /персональн|обработк/i.test(nearbyText)) {
+          pdCheckboxCount++;
+        }
+        if (/подписк|рассылк|newsletter|новости/i.test(nearbyText)) {
+          newsletterCheckboxCount++;
+        }
+      });
+
+      if (pdCheckboxCount >= 1 && newsletterCheckboxCount >= 1) {
+        hasFormWithSeparateCheckboxes = true;
+      }
+    });
+
+    if (hasSubscriptionForm && !hasFormWithSeparateCheckboxes) {
+      warnings.push({
+        id: 'pd-07',
+        title: 'Отсутствуют раздельные чекбоксы для ПД и рассылки',
+        description:
+          'В формах подписки рекомендуется использовать раздельные чекбоксы: ' +
+          'один для согласия на обработку персональных данных, другой — для согласия на рассылку.',
+        law: LAW,
+        article: 'ст. 9 152-ФЗ',
+        potentialFine: '300 000 — 700 000 руб.',
+        recommendation:
+          'Разделите согласие на обработку ПД и согласие на рассылку в отдельные чекбоксы.',
+      });
+    } else if (hasSubscriptionForm && hasFormWithSeparateCheckboxes) {
+      passed.push({
+        id: 'pd-07',
+        title: 'Формы подписки содержат раздельные чекбоксы для ПД и рассылки',
+        module: MODULE,
+      });
+    } else {
+      passed.push({
+        id: 'pd-07',
+        title: 'Формы подписки не обнаружены',
+        module: MODULE,
+      });
+    }
+  }
+
+  // ─── pd-08: Mechanism to revoke consent ───────────────────────────
+  {
+    const revokePatterns = [
+      /отзыв/i,
+      /отказ/i,
+      /отписаться/i,
+      /удалить\s+данные/i,
+    ];
+
+    const hasRevoke = revokePatterns.some(
+      (p) => p.test(html) || (policyText && p.test(policyText))
+    );
+
+    if (!hasRevoke) {
+      warnings.push({
+        id: 'pd-08',
+        title: 'Не обнаружен механизм отзыва согласия',
+        description:
+          'На сайте не найдена информация о возможности отзыва согласия на обработку персональных данных. ' +
+          'Субъект ПД имеет право отозвать своё согласие.',
+        law: LAW,
+        article: 'ст. 9 ч.2 152-ФЗ',
+        potentialFine: '300 000 — 700 000 руб.',
+        recommendation:
+          'Добавьте на сайт информацию о порядке отзыва согласия на обработку персональных данных ' +
+          '(форму, email или инструкцию).',
+      });
+    } else {
+      passed.push({
+        id: 'pd-08',
+        title: 'Механизм отзыва согласия обнаружен',
+        module: MODULE,
+      });
+    }
   }
 
   // ─── hidden-01: Passive consent detected ───────────────────────────

@@ -118,5 +118,122 @@ export function checkAdvertising($: CheerioAPI, html: string): CheckResult {
     });
   }
 
+  // ─── ad-03: ERID token in ads ──────────────────────────────────────
+  if (hasAds) {
+    const eridPatterns = [
+      /erid[:=\s]\S+/i,
+      /erid[:/]\S+/i,
+    ];
+
+    const hasErid = eridPatterns.some((p) => p.test(html));
+
+    if (!hasErid) {
+      violations.push({
+        id: 'ad-03',
+        module: MODULE,
+        law: LAW,
+        article: 'ст. 18.1 38-ФЗ',
+        severity: 'high',
+        title: 'Токен ERID не обнаружен в рекламных блоках',
+        description:
+          'На сайте обнаружены рекламные блоки, но не найден идентификатор токена ERID. ' +
+          'С 01.09.2023 каждый рекламный материал должен содержать токен ERID, полученный через ОРД.',
+        minFine: 200000,
+        maxFine: 500000,
+        details: [
+          'Обнаружены рекламные скрипты/блоки',
+          'Не найден токен ERID в формате erid:XXX, erid=XXX или erid/XXX',
+        ],
+        recommendation:
+          'Получите токен ERID через оператора рекламных данных (ОРД) и добавьте его к каждому рекламному креативу.',
+      });
+    } else {
+      passed.push({
+        id: 'ad-03',
+        title: 'Токен ERID обнаружен в рекламных материалах',
+        module: MODULE,
+      });
+    }
+  } else {
+    passed.push({
+      id: 'ad-03',
+      title: 'Рекламные блоки не обнаружены (проверка ERID не требуется)',
+      module: MODULE,
+    });
+  }
+
+  // ─── ad-05: No Meta advertising (Instagram/Facebook) ──────────────
+  {
+    const metaAdPatterns = [
+      /instagram\.com/i,
+      /facebook\.com/i,
+    ];
+
+    // Check in ad context — look for Meta links near ad-related elements
+    const hasMetaAds = metaAdPatterns.some((p) => p.test(html));
+
+    if (hasMetaAds) {
+      const metaDetails: string[] = [];
+      if (/instagram\.com/i.test(html)) metaDetails.push('Обнаружена ссылка на instagram.com');
+      if (/facebook\.com/i.test(html)) metaDetails.push('Обнаружена ссылка на facebook.com');
+
+      violations.push({
+        id: 'ad-05',
+        module: MODULE,
+        law: LAW,
+        article: 'ст. 14.3 КоАП',
+        severity: 'high',
+        title: 'Обнаружены ссылки на запрещённые социальные сети Meta',
+        description:
+          'На сайте обнаружены ссылки на социальные сети Instagram и/или Facebook (Meta Platforms Inc.), ' +
+          'деятельность которых запрещена на территории РФ. Размещение рекламы в запрещённых соцсетях влечёт штраф.',
+        minFine: 100000,
+        maxFine: 500000,
+        details: metaDetails,
+        recommendation:
+          'Удалите ссылки на Instagram и Facebook. При необходимости замените на разрешённые платформы (VK, Telegram, Одноклассники).',
+      });
+    } else {
+      passed.push({
+        id: 'ad-05',
+        title: 'Ссылки на запрещённые социальные сети Meta не обнаружены',
+        module: MODULE,
+      });
+    }
+  }
+
+  // ─── ad-06: Social advertising marked ─────────────────────────────
+  {
+    const hasSocialAd = /социальн/i.test(html) && hasAds;
+
+    if (hasAds && !hasSocialAd) {
+      warnings.push({
+        id: 'ad-06',
+        title: 'Социальная реклама не промаркирована',
+        description:
+          'При наличии рекламных блоков не обнаружена маркировка социальной рекламы. ' +
+          'Если на сайте размещается социальная реклама, она должна быть соответствующим образом промаркирована.',
+        law: LAW,
+        article: 'ст. 10 38-ФЗ',
+        potentialFine: '200 000 — 500 000 руб.',
+        recommendation:
+          'Если на сайте размещена социальная реклама, убедитесь, что она помечена как «социальная реклама» ' +
+          'с указанием рекламодателя и источника финансирования.',
+      });
+    } else if (hasSocialAd) {
+      passed.push({
+        id: 'ad-06',
+        title: 'Маркировка социальной рекламы обнаружена',
+        module: MODULE,
+      });
+    } else {
+      passed.push({
+        id: 'ad-06',
+        title: 'Рекламные блоки не обнаружены (проверка социальной рекламы не требуется)',
+        module: MODULE,
+      });
+    }
+  }
+
   return { violations, warnings, passed };
 }

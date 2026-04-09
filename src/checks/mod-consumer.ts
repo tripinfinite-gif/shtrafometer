@@ -329,5 +329,132 @@ export function checkConsumer(
     });
   }
 
+  // con-04: Business hours listed
+  {
+    const hoursPatterns = [
+      /режим\s+работ/i,
+      /график/i,
+      /пн-пт/i,
+      /пн–пт/i,
+      /часы\s+работы/i,
+      /\d{1,2}:\d{2}\s*[—–-]\s*\d{1,2}:\d{2}/,
+    ];
+
+    const hasHours = hoursPatterns.some((p) => p.test(html));
+
+    if (!hasHours) {
+      if (isEcommerce || isService) {
+        violations.push({
+          id: 'con-04',
+          module: MODULE,
+          law: LAW,
+          article: ARTICLE,
+          severity: 'low',
+          title: 'Не указан режим работы',
+          description:
+            'На сайте не обнаружена информация о режиме работы организации.',
+          minFine: MIN_FINE,
+          maxFine: MAX_FINE,
+          details: [
+            'Не найдены упоминания: «режим работы», «график», «часы работы», «пн-пт»',
+            'Не найдены временные паттерны (например, 9:00–18:00)',
+          ],
+          recommendation:
+            'Укажите режим работы организации на странице «Контакты» или в подвале сайта.',
+        });
+      } else {
+        warnings.push({
+          id: 'con-04',
+          title: 'Не указан режим работы',
+          description:
+            'Рекомендуется указать режим работы даже на информационном сайте.',
+          law: LAW,
+          article: ARTICLE,
+          potentialFine: '5 000 — 20 000 ₽',
+          recommendation:
+            'Добавьте информацию о режиме работы на сайт.',
+        });
+      }
+    } else {
+      passed.push({
+        id: 'con-04',
+        title: 'Режим работы указан',
+        module: MODULE,
+      });
+    }
+  }
+
+  // con-06: Address for complaints
+  {
+    const complaintPatterns = [/претензи/i, /жалоб/i, /рекламаци/i];
+    const hasComplaintInfo = complaintPatterns.some((p) => p.test(html));
+
+    if (!hasComplaintInfo) {
+      if (isEcommerce || isService) {
+        warnings.push({
+          id: 'con-06',
+          title: 'Не указан адрес для направления претензий',
+          description:
+            'На сайте не обнаружена информация о порядке направления претензий и жалоб.',
+          law: LAW,
+          article: ARTICLE,
+          potentialFine: '5 000 — 20 000 ₽',
+          recommendation:
+            'Укажите адрес (почтовый и/или электронный) для направления претензий и жалоб потребителей.',
+        });
+      }
+    } else {
+      passed.push({
+        id: 'con-06',
+        title: 'Информация для направления претензий обнаружена',
+        module: MODULE,
+      });
+    }
+  }
+
+  // con-09: 7-day return for remote sales (ecommerce only)
+  if (isEcommerce) {
+    const returnPatterns = [
+      /7\s*дней/i,
+      /семь\s*дней/i,
+    ];
+    const hasReturnWord = /возврат/i.test(html);
+    const hasReturnPeriod = returnPatterns.some((p) => p.test(html));
+
+    if (!hasReturnWord || !hasReturnPeriod) {
+      violations.push({
+        id: 'con-09',
+        module: MODULE,
+        law: LAW,
+        article: ARTICLE,
+        severity: 'medium',
+        title: 'Не указано право на возврат товара в течение 7 дней',
+        description:
+          'На сайте интернет-магазина не обнаружена информация о праве потребителя отказаться от товара ' +
+          'в течение 7 дней после получения при дистанционной продаже (ст. 26.1 ЗоЗПП).',
+        minFine: MIN_FINE,
+        maxFine: MAX_FINE,
+        details: [
+          'Не найдено упоминание «7 дней» или «семь дней» в контексте возврата товара',
+        ],
+        recommendation:
+          'Укажите на сайте право потребителя вернуть товар в течение 7 дней с момента получения ' +
+          'при дистанционной продаже (ст. 26.1 Закона о защите прав потребителей).',
+      });
+    } else {
+      passed.push({
+        id: 'con-09',
+        title: 'Информация о 7-дневном сроке возврата товара обнаружена',
+        module: MODULE,
+      });
+    }
+  } else {
+    passed.push({
+      id: 'con-09',
+      title: 'Проверка 7-дневного возврата (не применимо для данного типа сайта)',
+      module: MODULE,
+    });
+  }
+
   return { violations, warnings, passed };
 }

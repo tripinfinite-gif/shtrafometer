@@ -7,6 +7,7 @@ import { checkConsumer } from './mod-consumer';
 import { checkAdvertising } from './mod-advertising';
 import { checkContent } from './mod-content';
 import { checkSecurity } from './mod-security';
+import { checkEcommerce } from './mod-ecommerce';
 
 // ─── Загрузка страницы ───────────────────────────────────────────────
 
@@ -91,31 +92,47 @@ async function fetchPage(url: string): Promise<{
 function detectSiteType($: cheerio.CheerioAPI, html: string): SiteType {
   const htmlLower = html.toLowerCase();
 
-  // Признаки интернет-магазина
-  const ecommercePatterns = [
+  // ── Сначала считаем баллы для всех типов ──
+
+  // Признаки интернет-магазина (товары, корзина, доставка товаров)
+  const ecommerceStrongPatterns = [
     'корзин',
-    'купить',
     'в корзину',
+    'добавить в корзину',
     'оформить заказ',
     'каталог товар',
     'интернет-магазин',
     'add to cart',
     'checkout',
+    'shopping cart',
   ];
 
-  const pricePattern = /\d+[\s\u00a0]?(?:₽|руб|р\.)/i;
+  const ecommerceWeakPatterns = [
+    'купить',
+    'товар',
+    'доставка товар',
+    'самовывоз',
+    'склад',
+  ];
 
-  const ecommerceScore = ecommercePatterns.reduce((score, pattern) => {
+  const hasPrices = /\d+[\s\u00a0]?(?:₽|руб|р\.)/i.test(html);
+
+  const ecommerceStrongScore = ecommerceStrongPatterns.reduce((score, pattern) => {
+    return score + (htmlLower.includes(pattern) ? 2 : 0);
+  }, 0);
+
+  const ecommerceWeakScore = ecommerceWeakPatterns.reduce((score, pattern) => {
     return score + (htmlLower.includes(pattern) ? 1 : 0);
-  }, 0) + (pricePattern.test(html) ? 2 : 0);
+  }, 0);
 
-  if (ecommerceScore >= 2) {
-    return 'ecommerce';
-  }
+  // Цена сама по себе НЕ делает сайт магазином — только в сочетании с товарными паттернами
+  const ecommerceScore = ecommerceStrongScore + ecommerceWeakScore + (hasPrices && ecommerceStrongScore > 0 ? 2 : 0);
 
-  // Признаки сервиса
+  // Признаки сервиса (услуги, заявки, калькуляторы)
   const servicePatterns = [
+    'услуг',
     'заказать',
+    'оказыва',
     'записаться',
     'оставить заявку',
     'рассчитать стоимость',
@@ -124,6 +141,11 @@ function detectSiteType($: cheerio.CheerioAPI, html: string): SiteType {
     'подписка',
     'личный кабинет',
     'регистрация',
+    'оформить',
+    'оформлени',
+    'стоимость услуг',
+    'перезвони',
+    'обратный звонок',
     'sign up',
     'dashboard',
   ];
@@ -133,14 +155,21 @@ function detectSiteType($: cheerio.CheerioAPI, html: string): SiteType {
     return score + (htmlLower.includes(pattern) ? 1 : 0);
   }, 0) + (hasForm ? 1 : 0);
 
-  // Сервис — если есть формы/заказы, но нет каталога товаров
-  const hasProductCatalog =
-    htmlLower.includes('каталог товар') ||
-    htmlLower.includes('интернет-магазин') ||
-    htmlLower.includes('корзин');
+  // ── Решение на основе баллов ──
 
-  if (serviceScore >= 2 && !hasProductCatalog) {
+  // Если есть сильные паттерны e-commerce и они побеждают service
+  if (ecommerceScore >= 4 && ecommerceScore > serviceScore) {
+    return 'ecommerce';
+  }
+
+  // Если service паттерны преобладают или нет явных признаков магазина
+  if (serviceScore >= 2) {
     return 'service';
+  }
+
+  // Fallback: если есть цены и хотя бы что-то товарное
+  if (ecommerceScore >= 4) {
+    return 'ecommerce';
   }
 
   return 'informational';
@@ -232,14 +261,28 @@ export async function analyzeUrl(inputUrl: string): Promise<CheckResponse> {
     }
   }
 
+  async function safeRunAsync(fn: () => Promise<CheckResult>): Promise<CheckResult> {
+    try {
+      return await fn();
+    } catch {
+      return emptyResult;
+    }
+  }
+
+  // Run async checks with Promise.allSettled for safety
+  const [personalDataResult] = await Promise.allSettled([
+    safeRunAsync(() => checkPersonalData($, html, finalUrl)),
+  ]);
+
   const results: CheckResult[] = [
-    safeRun(() => checkPersonalData($, html)),
+    personalDataResult.status === 'fulfilled' ? personalDataResult.value : emptyResult,
     safeRun(() => checkLocalization($, html)),
     safeRun(() => checkLanguage($, html)),
     safeRun(() => checkConsumer($, html, siteType)),
     safeRun(() => checkAdvertising($, html)),
     safeRun(() => checkContent($, html)),
-    safeRun(() => checkSecurity(finalUrl)),
+    safeRun(() => checkSecurity(finalUrl, $, html)),
+    safeRun(() => checkEcommerce($, html, siteType)),
   ];
 
   // 6. Объединение результатов
