@@ -256,40 +256,9 @@ export default function Home() {
   const isIdle = appState === "idle";
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-      {/* ────── Navigation ────── */}
-      <nav className="bg-white sticky top-0 z-50 border-b border-gray-200">
-        <div className="max-w-[980px] mx-auto px-6 h-14 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2.5 group">
-            <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="32" height="32" rx="8" fill="#6C5CE7" />
-              <path d="M16 6L22 9.5V16.5L16 20L10 16.5V9.5L16 6Z" fill="white" fillOpacity="0.9" />
-              <path d="M13 14L15 16.5L19.5 11.5" stroke="#6C5CE7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M10 19L16 22.5L22 19" stroke="white" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M10 22L16 25.5L22 22" stroke="white" strokeOpacity="0.3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span className="text-[16px] font-bold tracking-tight text-gray-900 group-hover:text-primary transition-colors">
-              Штрафометр
-            </span>
-          </a>
-          <div className="flex items-center gap-4">
-            {!isIdle && (
-              <button
-                onClick={() => { setAppState("idle"); setResult(null); setErrorMsg(""); setUrl(""); }}
-                className="px-4 py-1.5 rounded-lg text-[13px] font-medium text-primary bg-primary-lighter hover:bg-primary-light border border-primary/20 transition-colors cursor-pointer"
-              >
-                Новая проверка
-              </button>
-            )}
-            <span className="text-[12px] text-gray-400 hidden sm:block">
-              Проверка сайта на штрафы по законам РФ
-            </span>
-          </div>
-        </div>
-      </nav>
-
+    <div className="flex flex-col bg-white">
       {/* ────── Hero / Form ────── */}
-      <div className={`${isIdle ? "flex-1 flex items-center" : "pt-16 pb-10"} transition-all duration-500`}>
+      <div id="check" className={`${isIdle ? "min-h-[calc(100vh-56px)] flex items-center" : "pt-8 pb-6"} transition-all duration-500`}>
         <div className="max-w-[980px] mx-auto px-6 w-full">
           {isIdle && (
             <div className="text-center mb-16 animate-fade-up">

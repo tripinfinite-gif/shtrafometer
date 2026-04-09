@@ -7,6 +7,15 @@ export default function BlogArticle({ post }: { post: BlogPost }) {
 
   return (
     <article className="max-w-[720px] mx-auto">
+      {/* Hero image */}
+      <div className="rounded-2xl overflow-hidden mb-6 -mx-4 sm:mx-0">
+        <img
+          src={`/blog/${post.slug}.png`}
+          alt={post.title}
+          className="w-full aspect-[1200/630] object-cover"
+        />
+      </div>
+
       {/* Category badge */}
       <div className="mb-4">
         <span

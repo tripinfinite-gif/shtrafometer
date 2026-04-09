@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeUrl } from '@/checks/engine';
+import { saveCheckLog } from '@/lib/storage';
 
 export async function POST(request: NextRequest) {
+  const start = Date.now();
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || request.headers.get('x-real-ip')
+    || '';
+  const userAgent = request.headers.get('user-agent') || '';
+
+  let trimmed = '';
+
   try {
     const body = await request.json();
     const { url } = body;
@@ -13,8 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Базовая валидация URL
-    const trimmed = url.trim();
+    trimmed = url.trim();
     if (trimmed.length < 3 || trimmed.length > 2000) {
       return NextResponse.json(
         { error: 'Некорректный URL' },
@@ -23,10 +31,44 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await analyzeUrl(trimmed);
+    const durationMs = Date.now() - start;
+
+    // Save check log (fire-and-forget)
+    saveCheckLog({
+      url: trimmed,
+      ip,
+      userAgent,
+      violations: result.stats.violations,
+      warnings: result.stats.warnings,
+      totalMaxFine: result.totalMaxFine,
+      siteType: result.siteType,
+      riskLevel: result.riskLevel,
+      success: true,
+      durationMs,
+    }).catch((err) => console.error('[CHECK_LOG] save error:', err));
+
     return NextResponse.json(result);
   } catch (error) {
+    const durationMs = Date.now() - start;
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+
+    if (trimmed) {
+      saveCheckLog({
+        url: trimmed,
+        ip,
+        userAgent,
+        violations: 0,
+        warnings: 0,
+        totalMaxFine: 0,
+        siteType: 'unknown',
+        riskLevel: 'low',
+        success: false,
+        error: errorMsg,
+        durationMs,
+      }).catch((err) => console.error('[CHECK_LOG] save error:', err));
+    }
+
     if (error instanceof Error) {
-      // Ошибка загрузки сайта — возвращаем 422
       if (
         error.message.includes('загрузить') ||
         error.message.includes('fetch') ||

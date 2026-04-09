@@ -47,6 +47,7 @@ function AdminShell({
             <span className="font-semibold text-primary text-lg">Штрафометр</span>
             <div className="hidden sm:flex items-center gap-1">
               <NavLink href="/admin" label="Заявки" active={title === 'Заявки'} />
+              <NavLink href="/admin/checks" label="Проверки" active={title === 'Проверки'} />
               <NavLink href="/admin/users" label="Домены" active={title === 'Домены'} />
             </div>
           </div>
@@ -61,6 +62,7 @@ function AdminShell({
 
       <div className="sm:hidden flex gap-1 px-4 pt-3">
         <NavLink href="/admin" label="Заявки" active={title === 'Заявки'} />
+        <NavLink href="/admin/checks" label="Проверки" active={title === 'Проверки'} />
         <NavLink href="/admin/users" label="Домены" active={title === 'Домены'} />
       </div>
 
