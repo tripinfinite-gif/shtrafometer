@@ -1,6 +1,6 @@
 import { sql } from '@vercel/postgres';
 import { ensureSchema } from './db';
-import type { Order, OrderStatus, ProductType, DomainHistory, DomainCheck } from './types';
+import type { Order, OrderStatus, ProductType, DomainHistory, DomainCheck, CheckLog } from './types';
 
 // Auto-migrate on first call
 let schemaReady = false;
@@ -234,5 +234,103 @@ export async function getStats(): Promise<{
     inProgressOrders: Number(r.in_progress_count),
     completedOrders: Number(r.completed_count),
     uniqueDomains: Number(r.unique_domains),
+  };
+}
+
+// ─── Check Logs ────────────────────────────────────────────────────
+
+function rowToCheckLog(row: Record<string, unknown>): CheckLog {
+  return {
+    id: row.id as string,
+    createdAt: (row.created_at as Date).toISOString(),
+    url: row.url as string,
+    domain: (row.domain as string) || '',
+    ip: (row.ip as string) || '',
+    userAgent: (row.user_agent as string) || '',
+    violations: row.violations as number,
+    warnings: row.warnings as number,
+    totalMaxFine: row.total_max_fine as number,
+    siteType: (row.site_type as string) || 'unknown',
+    riskLevel: (row.risk_level as string) || 'low',
+    success: row.success as boolean,
+    error: (row.error as string) || undefined,
+    durationMs: row.duration_ms as number,
+  };
+}
+
+export async function saveCheckLog(data: {
+  url: string;
+  ip: string;
+  userAgent: string;
+  violations: number;
+  warnings: number;
+  totalMaxFine: number;
+  siteType: string;
+  riskLevel: string;
+  success: boolean;
+  error?: string;
+  durationMs: number;
+}): Promise<void> {
+  await ready();
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const domain = extractDomain(data.url);
+  await sql`
+    INSERT INTO check_logs (id, url, domain, ip, user_agent, violations, warnings, total_max_fine, site_type, risk_level, success, error, duration_ms)
+    VALUES (
+      ${id}, ${data.url}, ${domain}, ${data.ip}, ${data.userAgent},
+      ${data.violations}, ${data.warnings}, ${data.totalMaxFine},
+      ${data.siteType}, ${data.riskLevel}, ${data.success},
+      ${data.error || null}, ${data.durationMs}
+    )
+  `;
+}
+
+export async function getCheckLogs(opts?: {
+  domain?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{ logs: CheckLog[]; total: number }> {
+  await ready();
+  const limit = opts?.limit || 100;
+  const offset = opts?.offset || 0;
+
+  if (opts?.domain) {
+    const d = opts.domain.toLowerCase();
+    const { rows: countRows } = await sql`SELECT COUNT(*) AS cnt FROM check_logs WHERE domain = ${d}`;
+    const { rows } = await sql`
+      SELECT * FROM check_logs WHERE domain = ${d}
+      ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
+    `;
+    return { logs: rows.map(rowToCheckLog), total: Number(countRows[0].cnt) };
+  }
+
+  const { rows: countRows } = await sql`SELECT COUNT(*) AS cnt FROM check_logs`;
+  const { rows } = await sql`
+    SELECT * FROM check_logs ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
+  `;
+  return { logs: rows.map(rowToCheckLog), total: Number(countRows[0].cnt) };
+}
+
+export async function getCheckLogsStats(): Promise<{
+  totalChecks: number;
+  uniqueDomains: number;
+  todayChecks: number;
+  avgViolations: number;
+}> {
+  await ready();
+  const { rows } = await sql`
+    SELECT
+      COUNT(*) AS total,
+      COUNT(DISTINCT domain) FILTER (WHERE domain != '') AS unique_domains,
+      COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) AS today,
+      COALESCE(AVG(violations) FILTER (WHERE success = TRUE), 0) AS avg_violations
+    FROM check_logs
+  `;
+  const r = rows[0];
+  return {
+    totalChecks: Number(r.total),
+    uniqueDomains: Number(r.unique_domains),
+    todayChecks: Number(r.today),
+    avgViolations: Math.round(Number(r.avg_violations) * 10) / 10,
   };
 }

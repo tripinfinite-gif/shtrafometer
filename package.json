@@ -24,6 +24,7 @@
     "ssh2": "^1.17.0"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^25.5.2",

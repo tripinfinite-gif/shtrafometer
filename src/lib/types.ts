@@ -118,6 +118,36 @@ export interface ConnectionConfig {
   remotePath: string;
 }
 
+// ─── Check logs (visitor check history) ─────────────────────────
+
+export interface CheckLog {
+  id: string;
+  createdAt: string;
+  url: string;
+  domain: string;
+  ip: string;
+  userAgent: string;
+  violations: number;
+  warnings: number;
+  totalMaxFine: number;
+  siteType: string;
+  riskLevel: string;
+  success: boolean;
+  error?: string;
+  durationMs: number;
+}
+
+export interface CheckLogsResponse {
+  logs: CheckLog[];
+  total: number;
+  stats: {
+    totalChecks: number;
+    uniqueDomains: number;
+    todayChecks: number;
+    avgViolations: number;
+  };
+}
+
 // ─── Auth ───────────────────────────────────────────────────────────
 
 export interface SessionPayload {

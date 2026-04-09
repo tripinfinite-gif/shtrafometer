@@ -7,7 +7,17 @@ export default function BlogCard({ post }: { post: BlogPost }) {
 
   return (
     <Link href={`/blog/${post.slug}`} className="block">
-      <article className="card p-5 h-full flex flex-col transition-shadow duration-200">
+      <article className="card p-0 h-full flex flex-col transition-shadow duration-200 overflow-hidden rounded-2xl">
+        {/* Article image */}
+        <div className="relative w-full aspect-[1200/630] bg-gray-100 overflow-hidden">
+          <img
+            src={`/blog/${post.slug}.png`}
+            alt={post.title}
+            className="w-full h-full object-cover"
+            loading="lazy"
+          />
+        </div>
+        <div className="p-5 flex flex-col flex-1">
         <div className="flex items-center gap-2 mb-3">
           <span
             className="blog-category-badge"
@@ -40,6 +50,7 @@ export default function BlogCard({ post }: { post: BlogPost }) {
             {post.fineAmount}
           </span>
           <span className="text-xs text-gray-400">{post.region}</span>
+        </div>
         </div>
       </article>
     </Link>
