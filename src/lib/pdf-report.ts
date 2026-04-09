@@ -502,6 +502,215 @@ export async function generateReport(
       }
     }
 
+    // ── Technical SEO Audit ─────────────────────────────────────
+
+    {
+      const seoViolations = data.violations.filter(v => v.module === 'seo');
+      const seoPassed = data.passed.filter(p => p.module === 'seo');
+      const seoWarnings = data.warnings.filter(w => w.id?.startsWith('seo-'));
+      const allSeoChecks = [
+        ...seoPassed.map(p => ({ id: p.id, title: p.title, status: 'passed' as const })),
+        ...seoViolations.map(v => ({ id: v.id, title: v.title, status: 'violation' as const })),
+        ...seoWarnings.map(w => ({ id: w.id, title: w.title, status: 'warning' as const })),
+      ];
+
+      if (allSeoChecks.length > 0) {
+        doc.addPage();
+        y = 50;
+        if (isOutbound) drawWatermark(doc, fontBold);
+
+        // Section header
+        doc.fillColor(C.black).font(fontBold).fontSize(14)
+          .text('Технический SEO-аудит', 50, y);
+        y += 28;
+
+        // SEO Score
+        const rawScore = 100 - seoViolations.length * 7;
+        const seoScore = Math.max(0, Math.min(100, rawScore));
+        const scoreColor = seoScore >= 80 ? C.low : seoScore >= 50 ? C.medium : C.critical;
+
+        // Score visualization box
+        doc.roundedRect(50, y, 495.28, 60, 8).fill(C.gray50);
+
+        doc.fillColor(scoreColor).font(fontBold).fontSize(36)
+          .text(String(seoScore), 70, y + 8, { width: 80 });
+        doc.fillColor(C.gray500).font(font).fontSize(11)
+          .text('из 100 баллов', 70, y + 44, { width: 100 });
+
+        doc.fillColor(C.gray800).font(fontSemi).fontSize(10)
+          .text('SEO-оценка сайта', 180, y + 12, { width: 350 });
+        doc.fillColor(C.gray400).font(font).fontSize(8)
+          .text(
+            `Проверено: ${allSeoChecks.length} параметров  |  Проблем: ${seoViolations.length}  |  Предупреждений: ${seoWarnings.length}  |  Пройдено: ${seoPassed.length}`,
+            180, y + 28, { width: 350 },
+          );
+
+        y += 72;
+
+        // Quick vs complex fix definitions
+        const complexFixIds = new Set(['seo-01', 'seo-05', 'seo-06', 'seo-07', 'seo-08']);
+        const fixPrices: Record<string, string> = {
+          'seo-01': '5 000 — 15 000 руб.',
+          'seo-02': '500 — 1 000 руб.',
+          'seo-03': '500 — 1 000 руб.',
+          'seo-04': '500 — 1 500 руб.',
+          'seo-05': '5 000 — 15 000 руб.',
+          'seo-06': '5 000 — 15 000 руб.',
+          'seo-07': '3 000 — 10 000 руб.',
+          'seo-08': '2 000 — 8 000 руб.',
+          'seo-09': '200 — 800 руб.',
+          'seo-10': '300 — 1 000 руб.',
+          'seo-11': '300 — 1 000 руб.',
+          'seo-12': '200 — 500 руб.',
+          'seo-13': '200 — 500 руб.',
+          'seo-14': '500 — 1 500 руб.',
+        };
+
+        // Table header
+        if (y > 700) { doc.addPage(); y = 50; if (isOutbound) drawWatermark(doc, fontBold); }
+
+        doc.fillColor(C.black).font(fontBold).fontSize(11)
+          .text('Результаты проверок', 50, y);
+        y += 18;
+
+        // Column headers
+        doc.roundedRect(50, y, 495.28, 20, 3).fill(C.primary);
+        doc.fillColor(C.white).font(fontSemi).fontSize(7);
+        doc.text('Проверка', 60, y + 5, { width: 190 });
+        doc.text('Статус', 255, y + 5, { width: 80 });
+        doc.text('Сложность', 340, y + 5, { width: 70 });
+        doc.text('Цена исправления', 415, y + 5, { width: 120, align: 'right' });
+        y += 24;
+
+        // Table rows
+        for (const check of allSeoChecks) {
+          if (y > 730) { doc.addPage(); y = 50; if (isOutbound) drawWatermark(doc, fontBold); }
+
+          doc.roundedRect(50, y, 495.28, 22, 3).fill(C.gray50);
+
+          // Check name
+          doc.fillColor(C.gray800).font(font).fontSize(7.5)
+            .text(check.title, 60, y + 5, { width: 190, ellipsis: true });
+
+          // Status
+          const statusText = check.status === 'passed' ? '✓ Пройдена'
+            : check.status === 'warning' ? '⚠ Предупреждение'
+            : '✗ Проблема';
+          const statusColor = check.status === 'passed' ? C.low
+            : check.status === 'warning' ? C.medium
+            : C.critical;
+          doc.fillColor(statusColor).font(fontSemi).fontSize(7.5)
+            .text(statusText, 255, y + 5, { width: 80 });
+
+          // Complexity
+          const isComplex = complexFixIds.has(check.id);
+          const complexityText = check.status === 'passed' ? '—' : isComplex ? 'Сложный фикс' : 'Быстрый фикс';
+          const complexityColor = check.status === 'passed' ? C.gray300 : isComplex ? C.high : C.low;
+          doc.fillColor(complexityColor).font(font).fontSize(7)
+            .text(complexityText, 340, y + 5, { width: 70 });
+
+          // Price
+          const priceText = check.status === 'passed' ? '—' : (fixPrices[check.id] || '—');
+          doc.fillColor(C.gray500).font(font).fontSize(7)
+            .text(priceText, 415, y + 5, { width: 120, align: 'right' });
+
+          y += 26;
+        }
+
+        // Detailed violation descriptions
+        if (seoViolations.length > 0) {
+          y += 10;
+          if (y > 680) { doc.addPage(); y = 50; if (isOutbound) drawWatermark(doc, fontBold); }
+
+          doc.fillColor(C.black).font(fontBold).fontSize(11)
+            .text('Подробности по SEO-проблемам', 50, y);
+          y += 18;
+
+          for (const v of seoViolations) {
+            if (y > 700) { doc.addPage(); y = 50; if (isOutbound) drawWatermark(doc, fontBold); }
+
+            const isComplex = complexFixIds.has(v.id);
+
+            // Card background
+            const descH = 14 + Math.ceil(v.description.length / 90) * 10 + Math.ceil(v.recommendation.length / 90) * 10 + 36;
+            if (y + descH > 760) { doc.addPage(); y = 50; if (isOutbound) drawWatermark(doc, fontBold); }
+
+            doc.roundedRect(54, y, 491.28, descH, 6)
+              .lineWidth(0.5).strokeColor(C.gray200).stroke();
+            doc.rect(50, y, 4, descH).fill(C.critical);
+
+            let iy = y + 8;
+
+            // Title + fix category badge
+            doc.fillColor(C.black).font(fontSemi).fontSize(9)
+              .text(v.title, 64, iy, { width: 350 });
+            const badgeColor = isComplex ? C.high : C.low;
+            const badgeText = isComplex ? 'Сложный фикс' : 'Быстрый фикс';
+            doc.roundedRect(430, iy - 2, 100, 16, 3).fill(badgeColor);
+            doc.fillColor(C.white).font(fontBold).fontSize(7)
+              .text(badgeText, 432, iy, { width: 96, align: 'center' });
+            iy = doc.y + 6;
+
+            // Description
+            doc.fillColor(C.gray500).font(font).fontSize(7.5)
+              .text(`Проблема: ${v.description}`, 64, iy, { width: 471 });
+            iy = doc.y + 4;
+
+            // Recommendation
+            doc.fillColor(C.primary).font(font).fontSize(7.5)
+              .text(`Рекомендация: ${v.recommendation}`, 64, iy, { width: 471 });
+            iy = doc.y + 4;
+
+            // Price
+            const price = fixPrices[v.id] || '—';
+            doc.fillColor(C.gray400).font(fontSemi).fontSize(7)
+              .text(`Стоимость исправления: ${price}`, 64, iy, { width: 471 });
+            iy = doc.y + 4;
+
+            y = iy + 6;
+          }
+        }
+
+        // Pricing summary table
+        y += 8;
+        if (y > 650) { doc.addPage(); y = 50; if (isOutbound) drawWatermark(doc, fontBold); }
+
+        doc.fillColor(C.black).font(fontBold).fontSize(11)
+          .text('Стоимость SEO-исправлений', 50, y);
+        y += 18;
+
+        // Quick fixes summary
+        doc.roundedRect(50, y, 495.28, 22, 3).fill(C.gray50);
+        doc.fillColor(C.low).font(fontSemi).fontSize(8)
+          .text('Быстрые фиксы', 60, y + 5, { width: 150 });
+        doc.fillColor(C.gray500).font(font).fontSize(7)
+          .text('title, description, h1, alt, canonical, OG, favicon, lang, headings', 180, y + 5, { width: 200 });
+        doc.fillColor(C.gray800).font(fontSemi).fontSize(8)
+          .text('200 — 1 500 руб.', 415, y + 5, { width: 120, align: 'right' });
+        y += 26;
+
+        // Complex fixes summary
+        doc.roundedRect(50, y, 495.28, 22, 3).fill(C.gray50);
+        doc.fillColor(C.high).font(fontSemi).fontSize(8)
+          .text('Сложные фиксы', 60, y + 5, { width: 150 });
+        doc.fillColor(C.gray500).font(font).fontSize(7)
+          .text('SSL, Core Web Vitals, robots.txt, schema, viewport/mobile', 180, y + 5, { width: 200 });
+        doc.fillColor(C.gray800).font(fontSemi).fontSize(8)
+          .text('2 000 — 15 000 руб.', 415, y + 5, { width: 120, align: 'right' });
+        y += 26;
+
+        // Core Web Vitals additional service
+        doc.roundedRect(50, y, 495.28, 22, 3).fill(C.primaryLight);
+        doc.fillColor(C.primary).font(fontSemi).fontSize(8)
+          .text('Core Web Vitals оптимизация', 60, y + 5, { width: 200 });
+        doc.fillColor(C.gray500).font(font).fontSize(7)
+          .text('комплексная оптимизация скорости загрузки', 240, y + 5, { width: 170 });
+        doc.fillColor(C.primaryDark).font(fontSemi).fontSize(8)
+          .text('5 000 — 15 000 руб.', 415, y + 5, { width: 120, align: 'right' });
+        y += 30;
+      }
+    }
+
     // ── Recommendations (full report only) ───────────────────────
 
     if (!isOutbound && data.violations.length > 0) {

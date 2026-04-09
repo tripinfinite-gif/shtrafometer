@@ -8,6 +8,7 @@ import { checkAdvertising } from './mod-advertising';
 import { checkContent } from './mod-content';
 import { checkSecurity } from './mod-security';
 import { checkEcommerce } from './mod-ecommerce';
+import { checkSeo } from './mod-seo';
 
 // ─── Загрузка страницы ───────────────────────────────────────────────
 
@@ -283,6 +284,7 @@ export async function analyzeUrl(inputUrl: string): Promise<CheckResponse> {
     safeRun(() => checkContent($, html)),
     safeRun(() => checkSecurity(finalUrl, $, html)),
     safeRun(() => checkEcommerce($, html, siteType)),
+    safeRun(() => checkSeo($, html, finalUrl)),
   ];
 
   // 6. Объединение результатов

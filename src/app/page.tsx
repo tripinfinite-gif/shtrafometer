@@ -98,6 +98,7 @@ const STAGES = [
   "Проверка русского языка",
   "Анализ рекламных блоков",
   "Проверка прав потребителей",
+  "Технический SEO",
   "Расчёт штрафов",
 ];
 
@@ -573,6 +574,77 @@ export default function Home() {
               </div>
             </section>
           )}
+
+          {/* ────── SEO Audit Summary ────── */}
+          {(() => {
+            const seoViolations = result.violations.filter((v) => v.module === "seo");
+            const seoPassed = result.passed.filter((c) => c.module === "seo");
+            if (seoViolations.length === 0 && seoPassed.length === 0) return null;
+            const seoScore = Math.max(0, Math.min(100, 100 - seoViolations.length * 7));
+            const scoreColor = seoScore >= 80 ? "#22C55E" : seoScore >= 50 ? "#EAB308" : "#EF4444";
+            const scoreBg = seoScore >= 80 ? "#F0FDF4" : seoScore >= 50 ? "#FEFCE8" : "#FEF2F2";
+            return (
+              <section className="mt-10 mb-8 animate-fade-up">
+                <div className="card rounded-2xl p-8 sm:p-10">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-[21px] sm:text-[24px] font-semibold tracking-tight text-gray-800">
+                      Технический SEO-аудит
+                    </h2>
+                    <span
+                      className="px-4 py-2 rounded-full text-[20px] font-bold"
+                      style={{ color: scoreColor, background: scoreBg, border: `1px solid ${scoreColor}30` }}
+                    >
+                      {seoScore}/100
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    {/* Passed SEO checks */}
+                    {seoPassed.length > 0 && (
+                      <div>
+                        <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-3">Что хорошо</p>
+                        <div className="space-y-2.5">
+                          {seoPassed.slice(0, 5).map((c) => (
+                            <div key={c.id} className="flex items-center gap-3">
+                              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
+                                <path d="M2.5 7.5L5.5 10.5L11.5 3.5" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                              <span className="text-[13px] text-gray-500">{c.title}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SEO violations */}
+                    {seoViolations.length > 0 && (
+                      <div>
+                        <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-3">Что плохо</p>
+                        <div className="space-y-2.5">
+                          {seoViolations.slice(0, 5).map((v) => (
+                            <div key={v.id} className="flex items-center gap-3">
+                              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
+                                <path d="M3.5 3.5L10.5 10.5M10.5 3.5L3.5 10.5" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round" />
+                              </svg>
+                              <span className="text-[13px] text-gray-500">{v.title}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* PDF teaser */}
+                  <div className="mt-6 pt-6 border-t border-gray-100 text-center">
+                    <p className="text-[13px] text-gray-400">
+                      Подробные рекомендации — в PDF-отчёте
+                    </p>
+                  </div>
+                </div>
+              </section>
+            );
+          })()}
 
           {/* ────── Email-gate: Get detailed instructions ────── */}
           {result.violations.length > 0 && (
