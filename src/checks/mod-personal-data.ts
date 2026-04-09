@@ -5,7 +5,7 @@ export async function checkPersonalData(
   $: CheerioAPI,
   html: string,
   baseUrl: string
-): Promise<CheckResult> {
+): Promise<CheckResult & { policyText: string }> {
   const violations: Violation[] = [];
   const warnings: Warning[] = [];
   const passed: PassedCheck[] = [];
@@ -225,6 +225,62 @@ export async function checkPersonalData(
           'Уберите атрибут checked у чекбокса согласия. Пользователь должен самостоятельно отметить согласие.',
       });
     }
+
+    // pd-05a: Check for privacy policy link inside form
+    if (hasConsentCheckbox) {
+      const formLinks = $form.find('a');
+      let hasPolicyLink = false;
+
+      formLinks.each((_, linkEl) => {
+        const $link = $(linkEl);
+        const linkHref = ($link.attr('href') || '').toLowerCase();
+        const linkText = $link.text().toLowerCase();
+
+        const matchesHref = /\/privacy|\/politika|\/confidential|\/personal-data/i.test(linkHref);
+        const matchesText = /политик|конфиденциальн|персональн\S*\s+данн/i.test(linkText);
+
+        if (matchesHref || matchesText) {
+          hasPolicyLink = true;
+        }
+      });
+
+      // Also check label text for links
+      if (!hasPolicyLink) {
+        const checkboxes = $form.find('input[type="checkbox"]');
+        checkboxes.each((_, cbEl) => {
+          const $cb = $(cbEl);
+          const label = $form.find(`label[for="${$cb.attr('id')}"]`);
+          const parentEl = $cb.parent();
+          const nearbyLinks = label.find('a').add(parentEl.find('a'));
+
+          nearbyLinks.each((_, linkEl) => {
+            const $link = $(linkEl);
+            const linkHref = ($link.attr('href') || '').toLowerCase();
+            const linkText = $link.text().toLowerCase();
+
+            if (/\/privacy|\/politika|\/confidential|\/personal-data/i.test(linkHref) ||
+                /политик|конфиденциальн/i.test(linkText)) {
+              hasPolicyLink = true;
+            }
+          });
+        });
+      }
+
+      if (!hasPolicyLink) {
+        warnings.push({
+          id: 'pd-05a',
+          title: 'Форма не содержит ссылку на политику конфиденциальности',
+          description:
+            'Рядом с чекбоксом согласия в форме не обнаружена кликабельная ссылка на политику конфиденциальности. ' +
+            'Пользователь должен иметь возможность ознакомиться с политикой перед дачей согласия.',
+          law: LAW,
+          article: 'ст. 13.11 ч.2 КоАП',
+          potentialFine: '300 000 — 700 000 руб.',
+          recommendation:
+            'Добавьте в текст согласия кликабельную ссылку на политику конфиденциальности.',
+        });
+      }
+    }
   });
 
   if (formsWithPdCount > 0 && formsPassedCount === formsWithPdCount) {
@@ -341,6 +397,115 @@ export async function checkPersonalData(
       title: 'Баннер cookie обнаружен',
       module: MODULE,
     });
+  }
+
+  // ─── pd-10: Data minimization — excessive fields in forms ──────────
+  {
+    const heavyFieldPatterns = [
+      { pattern: /паспорт|passport/i, label: 'паспортные данные', special: true },
+      { pattern: /серия.*номер|document.*number/i, label: 'серия/номер документа', special: true },
+      { pattern: /снилс|snils/i, label: 'СНИЛС', special: true },
+      { pattern: /\bинн\b|\binn\b/i, label: 'ИНН', special: false },
+      { pattern: /дат\S*\s*рожд|birthday|birth.?date|\bdob\b/i, label: 'дата рождения', special: false },
+      { pattern: /медицин|medical|diagnos|диагноз/i, label: 'медицинские данные', special: true },
+      { pattern: /здоров|health/i, label: 'данные о здоровье', special: true },
+      { pattern: /биометр|biometr/i, label: 'биометрические данные', special: true },
+    ];
+
+    let hasExcessiveData = false;
+    let hasSpecialCategories = false;
+    const allHeavyFields: string[] = [];
+
+    forms.each((_, formEl) => {
+      const $form = $(formEl);
+      const heavyFieldsInForm: string[] = [];
+      let specialInForm = false;
+
+      // Count visible input fields (excluding hidden, submit, checkbox, button)
+      const visibleInputs = $form.find('input, select, textarea').filter((_, el) => {
+        const type = ($(el).attr('type') || '').toLowerCase();
+        return !['hidden', 'submit', 'checkbox', 'button', 'radio', 'reset', 'image'].includes(type);
+      });
+
+      // Check all form elements for heavy fields
+      $form.find('input, select, textarea').each((_, el) => {
+        const $el = $(el);
+        const name = ($el.attr('name') || '').toLowerCase();
+        const id = ($el.attr('id') || '').toLowerCase();
+        const placeholder = ($el.attr('placeholder') || '').toLowerCase();
+        const type = ($el.attr('type') || '').toLowerCase();
+        const labelEl = $form.find(`label[for="${$el.attr('id')}"]`);
+        const labelText = labelEl.text().toLowerCase();
+        const combinedText = `${name} ${id} ${placeholder} ${labelText}`;
+
+        for (const { pattern, label, special } of heavyFieldPatterns) {
+          if (pattern.test(combinedText)) {
+            if (!heavyFieldsInForm.includes(label)) {
+              heavyFieldsInForm.push(label);
+            }
+            if (special) specialInForm = true;
+          }
+        }
+      });
+
+      if (heavyFieldsInForm.length > 0) {
+        allHeavyFields.push(...heavyFieldsInForm);
+
+        // Simple form (≤4 visible inputs) with heavy fields = violation
+        if (visibleInputs.length <= 4) {
+          hasExcessiveData = true;
+        }
+
+        if (specialInForm) {
+          hasSpecialCategories = true;
+        }
+      }
+    });
+
+    if (hasExcessiveData) {
+      const uniqueFields = [...new Set(allHeavyFields)];
+      violations.push({
+        id: 'pd-10',
+        module: MODULE,
+        law: LAW,
+        article: 'ст. 13.11 ч.1 КоАП / ст. 5 ч.5 152-ФЗ',
+        severity: 'medium',
+        title: 'Форма запрашивает избыточные персональные данные',
+        description:
+          'Обнаружена форма, собирающая данные, не соответствующие заявленным целям обработки. ' +
+          'Принцип минимизации данных (ст. 5 ч.5 152-ФЗ) требует ограничить сбор данных только необходимым объёмом.',
+        minFine: 100000,
+        maxFine: 300000,
+        details: [`Обнаружены избыточные поля: ${uniqueFields.join(', ')}`],
+        recommendation:
+          'Удалите из формы поля, не необходимые для достижения целей обработки. ' +
+          'Для сбора паспортных, медицинских или биометрических данных требуется отдельное письменное согласие (ст. 10, 11 152-ФЗ).',
+      });
+    }
+
+    if (hasSpecialCategories) {
+      warnings.push({
+        id: 'pd-10a',
+        title: 'Обнаружен сбор особых категорий персональных данных',
+        description:
+          'Форма содержит поля для сбора паспортных, медицинских или биометрических данных. ' +
+          'Для обработки таких данных требуется отдельное письменное согласие субъекта (ст. 10, 11 152-ФЗ).',
+        law: LAW,
+        article: 'ст. 13.11 ч.2 КоАП / ст. 10, 11 152-ФЗ',
+        potentialFine: '300 000 — 700 000 руб.',
+        recommendation:
+          'Обеспечьте получение отдельного письменного согласия на обработку особых категорий ПД. ' +
+          'Убедитесь в наличии правового основания для их сбора.',
+      });
+    }
+
+    if (!hasExcessiveData && !hasSpecialCategories) {
+      passed.push({
+        id: 'pd-10',
+        title: 'Избыточные персональные данные в формах не обнаружены',
+        module: MODULE,
+      });
+    }
   }
 
   // ─── pd-03 & pd-04: Privacy policy content checks ─────────────────
@@ -460,6 +625,73 @@ export async function checkPersonalData(
         title: 'В политике указаны третьи лица — получатели данных',
         module: MODULE,
       });
+    }
+
+    // ─── pd-12: Operator details in privacy policy ─────────────────────
+    {
+      const operatorChecks = [
+        {
+          label: 'наименование оператора',
+          found: /оператор|наименован\S*\s+организац|общество с ограниченной|акционерное общество|индивидуальн\S*\s+предприниматель|\bООО\b|\bОАО\b|\bЗАО\b|\bАО\b|\bИП\b/i.test(policyText),
+        },
+        {
+          label: 'ИНН',
+          found: /ИНН\s*:?\s*\d{10,12}/i.test(policyText) || /\b\d{10}\b/.test(policyText),
+        },
+        {
+          label: 'ОГРН',
+          found: /ОГРН\s*:?\s*\d{13,15}/i.test(policyText) || /\b\d{13}\b/.test(policyText) || /\b\d{15}\b/.test(policyText),
+        },
+        {
+          label: 'юридический адрес',
+          found: /юридическ\S*\s+адрес|местонахожден|адрес\S*\s+оператор|место\s+нахождени/i.test(policyText),
+        },
+        {
+          label: 'контактный email',
+          found: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(policyText),
+        },
+      ];
+
+      const missingDetails = operatorChecks.filter((c) => !c.found).map((c) => c.label);
+      const foundCount = operatorChecks.length - missingDetails.length;
+
+      if (missingDetails.length >= 3) {
+        violations.push({
+          id: 'pd-12',
+          module: MODULE,
+          law: LAW,
+          article: 'ст. 13.11 ч.3 КоАП',
+          severity: 'medium',
+          title: 'В политике не указаны реквизиты оператора',
+          description:
+            'Политика конфиденциальности не содержит достаточных сведений об операторе персональных данных: ' +
+            'наименование, ИНН/ОГРН, адрес, контактные данные.',
+          minFine: 150000,
+          maxFine: 300000,
+          details: missingDetails.map((d) => `Не найдено: ${d}`),
+          recommendation:
+            'Укажите в политике конфиденциальности полные реквизиты оператора: наименование организации (или ФИО ИП), ИНН, ОГРН, юридический адрес и контактный email для обращений по вопросам ПД.',
+        });
+      } else if (missingDetails.length > 0) {
+        warnings.push({
+          id: 'pd-12',
+          title: 'В политике не полностью указаны реквизиты оператора',
+          description:
+            'В политике конфиденциальности обнаружена часть реквизитов оператора, но некоторые отсутствуют.',
+          law: LAW,
+          article: 'ст. 13.11 ч.3 КоАП',
+          potentialFine: '150 000 — 300 000 руб.',
+          recommendation:
+            'Дополните политику конфиденциальности недостающими реквизитами оператора: ' +
+            missingDetails.join(', ') + '.',
+        });
+      } else {
+        passed.push({
+          id: 'pd-12',
+          title: 'Реквизиты оператора указаны в политике конфиденциальности',
+          module: MODULE,
+        });
+      }
     }
   } else if (privacyLinkFound) {
     // Could not fetch policy — issue warnings instead
@@ -696,5 +928,5 @@ export async function checkPersonalData(
     });
   }
 
-  return { violations, warnings, passed };
+  return { violations, warnings, passed, policyText: policyText || '' };
 }

@@ -16,6 +16,7 @@ async function fetchPage(url: string): Promise<{
   html: string;
   finalUrl: string;
   usesHttps: boolean;
+  responseHeaders: Record<string, string>;
 }> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20000);
@@ -85,7 +86,14 @@ async function fetchPage(url: string): Promise<{
 
         const finalUrl = currentUrl;
         const usesHttps = finalUrl.startsWith('https://');
-        return { html, finalUrl, usesHttps };
+
+        // Extract response headers
+        const responseHeaders: Record<string, string> = {};
+        response.headers.forEach((value, key) => {
+          responseHeaders[key.toLowerCase()] = value;
+        });
+
+        return { html, finalUrl, usesHttps, responseHeaders };
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
         // Retry с другими заголовками
@@ -267,7 +275,7 @@ export async function analyzeUrl(inputUrl: string): Promise<CheckResponse> {
   }
 
   // 2. Загрузка страницы
-  const { html, finalUrl } = await fetchPage(url);
+  const { html, finalUrl, responseHeaders } = await fetchPage(url);
 
   // 3. Загрузка в cheerio
   const $ = cheerio.load(html);
@@ -295,24 +303,84 @@ export async function analyzeUrl(inputUrl: string): Promise<CheckResponse> {
   }
 
   // Run async checks with Promise.allSettled for safety
-  const [personalDataResult] = await Promise.allSettled([
+  const [personalDataResult, securityResult] = await Promise.allSettled([
     safeRunAsync(() => checkPersonalData($, html, finalUrl)),
+    safeRunAsync(() => checkSecurity(finalUrl, $, html, responseHeaders)),
   ]);
 
+  const pdResult = personalDataResult.status === 'fulfilled' ? personalDataResult.value : emptyResult;
+  const policyText = ('policyText' in pdResult) ? (pdResult as any).policyText as string : '';
+
   const results: CheckResult[] = [
-    personalDataResult.status === 'fulfilled' ? personalDataResult.value : emptyResult,
+    pdResult,
     safeRun(() => checkLocalization($, html)),
     safeRun(() => checkLanguage($, html)),
     safeRun(() => checkConsumer($, html, siteType)),
     safeRun(() => checkAdvertising($, html)),
     safeRun(() => checkContent($, html)),
-    safeRun(() => checkSecurity(finalUrl, $, html)),
+    securityResult.status === 'fulfilled' ? securityResult.value : emptyResult,
     safeRun(() => checkEcommerce($, html, siteType)),
     safeRun(() => checkSeo($, html, finalUrl)),
   ];
 
   // 6. Объединение результатов
   const { violations, warnings, passed } = mergeResults(results);
+
+  // 6a. Cross-reference: detected services vs privacy policy (pd-11)
+  {
+    const serviceMap: Record<string, { name: string; keywords: string[] }> = {
+      'loc-02': { name: 'Google Analytics', keywords: ['google analytics', 'google', 'гугл аналитик'] },
+      'loc-03': { name: 'Google Tag Manager', keywords: ['google tag manager', 'gtm', 'google', 'гугл'] },
+      'loc-04': { name: 'reCAPTCHA', keywords: ['recaptcha', 'google', 'гугл', 'капча'] },
+      'loc-05': { name: 'Google Fonts', keywords: ['google fonts', 'google', 'гугл', 'шрифт'] },
+      'loc-06': { name: 'Google Maps', keywords: ['google maps', 'google', 'гугл', 'карт'] },
+      'loc-07': { name: 'YouTube', keywords: ['youtube', 'ютуб'] },
+      'loc-08': { name: 'WhatsApp/Telegram', keywords: ['whatsapp', 'telegram', 'телеграм', 'ватсап', 'мессенджер'] },
+      'loc-09': { name: 'Сторонний чат-сервис', keywords: ['tawk', 'zendesk', 'intercom', 'crisp', 'drift', 'livechat', 'чат'] },
+      'loc-10': { name: 'Иностранная CRM', keywords: ['hubspot', 'salesforce', 'pipedrive', 'zoho', 'crm'] },
+      'loc-11': { name: 'Meta/Facebook SDK', keywords: ['facebook', 'meta', 'фейсбук'] },
+    };
+
+    const detectedServices = violations
+      .filter((v) => v.id.startsWith('loc-'))
+      .map((v) => serviceMap[v.id])
+      .filter(Boolean);
+
+    if (detectedServices.length > 0 && policyText) {
+      const policyLower = policyText.toLowerCase();
+      const unmatchedServices = detectedServices.filter(
+        (svc) => !svc.keywords.some((kw) => policyLower.includes(kw))
+      );
+
+      if (unmatchedServices.length > 0) {
+        violations.push({
+          id: 'pd-11',
+          module: 'personal-data',
+          law: '152-ФЗ',
+          article: 'ст. 13.11 ч.3 КоАП',
+          severity: 'high',
+          title: 'Сторонние сервисы не указаны в политике конфиденциальности',
+          description:
+            'На сайте обнаружены сторонние сервисы, обрабатывающие данные пользователей, но в политике конфиденциальности они не упомянуты. ' +
+            'Оператор обязан информировать о передаче данных третьим лицам.',
+          minFine: 150000,
+          maxFine: 300000,
+          details: unmatchedServices.map(
+            (s) => `Сервис «${s.name}» используется на сайте, но не упомянут в политике конфиденциальности`
+          ),
+          recommendation:
+            'Добавьте в политику конфиденциальности информацию обо всех сторонних сервисах, которым передаются данные пользователей: ' +
+            unmatchedServices.map((s) => s.name).join(', ') + '.',
+        });
+      } else {
+        passed.push({
+          id: 'pd-11',
+          title: 'Сторонние сервисы указаны в политике конфиденциальности',
+          module: 'personal-data',
+        });
+      }
+    }
+  }
 
   // 7. Сортировка нарушений по максимальному штрафу (убывание)
   violations.sort((a, b) => b.maxFine - a.maxFine);
