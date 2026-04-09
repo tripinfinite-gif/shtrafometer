@@ -18,63 +18,87 @@ async function fetchPage(url: string): Promise<{
   usesHttps: boolean;
 }> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 20000);
 
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-    'Cache-Control': 'no-cache',
-  };
+  // Несколько наборов заголовков — retry при блокировке облачных IP
+  const headerSets: Record<string, string>[] = [
+    {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+      'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Cache-Control': 'no-cache',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1',
+    },
+    {
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Cache-Control': 'no-cache',
+    },
+  ];
 
   try {
-    // Ручное следование редиректам (защита от redirect loops)
-    let currentUrl = url;
-    let response: Response | null = null;
-    const visited = new Set<string>();
+    let lastError: Error | null = null;
 
-    for (let i = 0; i < 10; i++) {
-      if (visited.has(currentUrl)) {
-        // Redirect loop detected — используем последний успешный ответ
-        break;
-      }
-      visited.add(currentUrl);
+    for (const headers of headerSets) {
+      try {
+        let currentUrl = url;
+        let response: Response | null = null;
+        const visited = new Set<string>();
 
-      response = await fetch(currentUrl, {
-        signal: controller.signal,
-        headers,
-        redirect: 'manual',
-      });
+        for (let i = 0; i < 10; i++) {
+          if (visited.has(currentUrl)) break;
+          visited.add(currentUrl);
 
-      const location = response.headers.get('location');
-      if (location && response.status >= 300 && response.status < 400) {
-        // Resolve relative redirects
-        currentUrl = new URL(location, currentUrl).toString();
+          response = await fetch(currentUrl, {
+            signal: controller.signal,
+            headers,
+            redirect: 'manual',
+          });
+
+          const location = response.headers.get('location');
+          if (location && response.status >= 300 && response.status < 400) {
+            currentUrl = new URL(location, currentUrl).toString();
+            continue;
+          }
+          break;
+        }
+
+        if (!response) {
+          throw new Error('Не удалось загрузить страницу: пустой ответ');
+        }
+
+        if (response.status >= 400) {
+          throw new Error(
+            `Не удалось загрузить страницу: HTTP ${response.status} ${response.statusText}`
+          );
+        }
+
+        const html = await response.text();
+        if (!html || html.length < 50) {
+          throw new Error('Не удалось загрузить страницу: пустой ответ от сервера');
+        }
+
+        const finalUrl = currentUrl;
+        const usesHttps = finalUrl.startsWith('https://');
+        return { html, finalUrl, usesHttps };
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        // Retry с другими заголовками
         continue;
       }
-      break;
     }
 
-    if (!response) {
-      throw new Error('Не удалось загрузить страницу: пустой ответ');
-    }
-
-    // Принимаем любой 2xx или 3xx (после redirect loop мы берём что есть)
-    if (response.status >= 400) {
-      throw new Error(
-        `Не удалось загрузить страницу: HTTP ${response.status} ${response.statusText}`
-      );
-    }
-
-    const html = await response.text();
-    const finalUrl = currentUrl;
-    const usesHttps = finalUrl.startsWith('https://');
-
-    return { html, finalUrl, usesHttps };
+    // Все попытки исчерпаны
+    throw lastError ?? new Error('Не удалось загрузить страницу');
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new Error(
-        `Не удалось загрузить страницу: превышено время ожидания (15 секунд)`
+        'Не удалось загрузить страницу: превышено время ожидания (20 секунд)'
       );
     }
     if (error instanceof TypeError) {
