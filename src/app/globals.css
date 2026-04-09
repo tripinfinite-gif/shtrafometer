@@ -160,19 +160,16 @@ input:focus {
 }
 
 /* ─── Admin layout: hide global nav and footer ────── */
-.admin-layout {
-  margin-top: -56px; /* offset the pt-14 from body > div */
-}
 
-/* When inside admin-layout, hide global nav and footer */
-body:has(.admin-layout) > nav {
+/* When inside admin-layout, hide global nav/footer and remove top padding */
+body:has(.admin-layout) nav:not(.admin-layout nav) {
   display: none !important;
 }
 
-body:has(.admin-layout) > footer {
+body:has(.admin-layout) footer:not(.admin-layout footer) {
   display: none !important;
 }
 
-body:has(.admin-layout) > div {
+body:has(.admin-layout) .pt-14 {
   padding-top: 0 !important;
 }
