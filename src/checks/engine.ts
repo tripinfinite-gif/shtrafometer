@@ -19,28 +19,53 @@ async function fetchPage(url: string): Promise<{
   responseHeaders: Record<string, string>;
 }> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
+  const timeout = setTimeout(() => controller.abort(), 30000);
 
   // Несколько наборов заголовков — retry при блокировке облачных IP
   const headerSets: Record<string, string>[] = [
     {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
       'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Accept-Encoding': 'gzip, deflate, br',
       'Cache-Control': 'no-cache',
+      'Sec-Ch-Ua': '"Chromium";v="131", "Not_A Brand";v="24"',
+      'Sec-Ch-Ua-Mobile': '?0',
+      'Sec-Ch-Ua-Platform': '"Windows"',
       'Sec-Fetch-Dest': 'document',
       'Sec-Fetch-Mode': 'navigate',
       'Sec-Fetch-Site': 'none',
       'Sec-Fetch-User': '?1',
       'Upgrade-Insecure-Requests': '1',
+      'Connection': 'keep-alive',
     },
     {
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Safari/605.1.15',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-      'Cache-Control': 'no-cache',
+      'Accept-Language': 'ru-RU,ru;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+    },
+    {
+      'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
     },
   ];
+
+  function isValidHtml(text: string): boolean {
+    return text.length > 200 && (
+      text.includes('<!DOCTYPE') || text.includes('<!doctype') ||
+      text.includes('<html') || text.includes('<HTML')
+    );
+  }
 
   try {
     let lastError: Error | null = null;
@@ -73,13 +98,20 @@ async function fetchPage(url: string): Promise<{
           throw new Error('Не удалось загрузить страницу: пустой ответ');
         }
 
+        const html = await response.text();
+
+        // Если статус 4xx/5xx — проверяем, есть ли в теле валидный HTML
+        // Многие сайты (гос. порталы, крупные сервисы) возвращают 403 с полноценным HTML
         if (response.status >= 400) {
-          throw new Error(
-            `Не удалось загрузить страницу: HTTP ${response.status} ${response.statusText}`
-          );
+          if (isValidHtml(html)) {
+            // Сайт вернул ошибку, но HTML есть — используем его
+          } else {
+            throw new Error(
+              `Сайт заблокировал запрос (HTTP ${response.status}). Возможно, сайт блокирует облачные IP-адреса.`
+            );
+          }
         }
 
-        const html = await response.text();
         if (!html || html.length < 50) {
           throw new Error('Не удалось загрузить страницу: пустой ответ от сервера');
         }
@@ -106,7 +138,7 @@ async function fetchPage(url: string): Promise<{
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new Error(
-        'Не удалось загрузить страницу: превышено время ожидания (20 секунд)'
+        'Не удалось загрузить страницу: превышено время ожидания (30 секунд). Сайт не отвечает или блокирует запросы.'
       );
     }
     if (error instanceof TypeError) {
@@ -276,6 +308,32 @@ export async function analyzeUrl(inputUrl: string): Promise<CheckResponse> {
 
   // 2. Загрузка страницы
   const { html, finalUrl, responseHeaders } = await fetchPage(url);
+
+  // 2a. Детекция капчи и блокировок — не анализировать заглушку
+  const htmlLowerCheck = html.toLowerCase();
+  const isCaptchaPage =
+    (finalUrl.includes('showcaptcha') || finalUrl.includes('captcha')) ||
+    (htmlLowerCheck.includes('captcha') && html.length < 50000 &&
+      !htmlLowerCheck.includes('<article') && !htmlLowerCheck.includes('<main'));
+  const isBlockPage =
+    html.length < 1000 && (
+      htmlLowerCheck.includes('access denied') ||
+      htmlLowerCheck.includes('403 forbidden') ||
+      htmlLowerCheck.includes('доступ запрещён') ||
+      htmlLowerCheck.includes('доступ запрещен') ||
+      htmlLowerCheck.includes('blocked')
+    );
+
+  if (isCaptchaPage) {
+    throw new Error(
+      'Сайт показывает капчу вместо содержимого. Это означает, что сайт блокирует автоматические запросы с облачных серверов.'
+    );
+  }
+  if (isBlockPage) {
+    throw new Error(
+      'Сайт заблокировал доступ с нашего сервера. Сайт использует защиту от автоматических запросов.'
+    );
+  }
 
   // 3. Загрузка в cheerio
   const $ = cheerio.load(html);

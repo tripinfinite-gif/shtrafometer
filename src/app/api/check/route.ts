@@ -69,13 +69,23 @@ export async function POST(request: NextRequest) {
     }
 
     if (error instanceof Error) {
+      // Капча или блокировка — передаём сообщение пользователю как есть
+      if (
+        error.message.includes('капчу') ||
+        error.message.includes('заблокировал')
+      ) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: 422 }
+        );
+      }
       if (
         error.message.includes('загрузить') ||
         error.message.includes('fetch') ||
         error.message.includes('abort')
       ) {
         return NextResponse.json(
-          { error: 'Не удалось загрузить сайт. Проверьте URL и попробуйте снова.' },
+          { error: error.message },
           { status: 422 }
         );
       }
