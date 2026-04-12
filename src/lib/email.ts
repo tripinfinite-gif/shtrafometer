@@ -1,20 +1,45 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
 // ─── Config ────────────────────────────────────────────────────────
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
-const FROM_EMAIL = process.env.FROM_EMAIL || 'Штрафометр <noreply@shtrafometer.ru>';
+let _transport: nodemailer.Transporter | null = null;
 
-let _resend: Resend | null = null;
-
-function getResend(): Resend {
-  if (!_resend) {
-    if (!RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY not configured');
-    }
-    _resend = new Resend(RESEND_API_KEY);
+function getTransport(): nodemailer.Transporter {
+  if (!_transport) {
+    _transport = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.yandex.ru',
+      port: Number(process.env.SMTP_PORT) || 465,
+      secure: true,
+      auth: {
+        user: process.env.SMTP_USER || '',
+        pass: process.env.SMTP_PASS || '',
+      },
+    });
   }
-  return _resend;
+  return _transport;
+}
+
+const FROM_EMAIL = process.env.FROM_EMAIL || 'Штрафометр <noreply@shtrafometer.ru>';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'info@shtrafometer.ru';
+
+// ─── Helpers ───────────────────────────────────────────────────────
+
+function formatMoney(n: number): string {
+  return n.toLocaleString('ru-RU') + ' ₽';
+}
+
+function escapeHtml(str: string): string {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function sendMail(to: string, subject: string, html: string): Promise<void> {
+  const transport = getTransport();
+  await transport.sendMail({ from: FROM_EMAIL, to, subject, html });
 }
 
 // ─── Email templates ───────────────────────────────────────────────
@@ -25,29 +50,12 @@ interface ViolationSummary {
   siteUrl: string;
 }
 
-function formatMoney(n: number): string {
-  return n.toLocaleString('ru-RU') + ' ₽';
-}
-
-/** Escape HTML to prevent XSS / injection in email templates */
-function escapeHtml(str: string): string {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 /** Email after email-gate: free recommendations */
 export async function sendEmailGateReport(to: string, data: ViolationSummary): Promise<void> {
-  const resend = getResend();
-
-  await resend.emails.send({
-    from: FROM_EMAIL,
+  await sendMail(
     to,
-    subject: `Результаты проверки ${data.siteUrl} — ${data.total} нарушений`,
-    html: `
+    `Результаты проверки ${data.siteUrl} — ${data.total} нарушений`,
+    `
 <!DOCTYPE html>
 <html lang="ru">
 <head><meta charset="utf-8"></head>
@@ -64,7 +72,7 @@ export async function sendEmailGateReport(to: string, data: ViolationSummary): P
         Результаты проверки
       </h1>
       <p style="font-size:14px;color:#6c757d;text-align:center;margin:0 0 24px">
-        ${data.siteUrl}
+        ${escapeHtml(data.siteUrl)}
       </p>
 
       <div style="background:#FEF2F2;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px">
@@ -106,7 +114,7 @@ export async function sendEmailGateReport(to: string, data: ViolationSummary): P
 </body>
 </html>
     `.trim(),
-  });
+  );
 }
 
 /** Email after paid order: confirmation + next steps */
@@ -117,8 +125,6 @@ export async function sendOrderConfirmation(to: string, data: {
   siteUrl: string;
   price: number;
 }): Promise<void> {
-  const resend = getResend();
-
   const productNames: Record<string, string> = {
     'report': 'PDF-отчёт',
     'autofix-basic': 'Автоисправление — базовый',
@@ -128,11 +134,10 @@ export async function sendOrderConfirmation(to: string, data: {
     'consulting': 'Консалтинг',
   };
 
-  await resend.emails.send({
-    from: FROM_EMAIL,
+  await sendMail(
     to,
-    subject: `Заявка #${data.orderId} — ${productNames[data.productType] || 'Услуга'} | Штрафометр`,
-    html: `
+    `Заявка #${data.orderId} — ${productNames[data.productType] || 'Услуга'} | Штрафометр`,
+    `
 <!DOCTYPE html>
 <html lang="ru">
 <head><meta charset="utf-8"></head>
@@ -187,7 +192,7 @@ export async function sendOrderConfirmation(to: string, data: {
 </body>
 </html>
     `.trim(),
-  });
+  );
 }
 
 /** Notify admin about new order */
@@ -201,14 +206,10 @@ export async function sendAdminNotification(data: {
   violations: number;
   totalMaxFine: number;
 }): Promise<void> {
-  const resend = getResend();
-  const adminEmail = process.env.ADMIN_EMAIL || 'info@shtrafometer.ru';
-
-  await resend.emails.send({
-    from: FROM_EMAIL,
-    to: adminEmail,
-    subject: `Новая заявка #${data.orderId} — ${data.productType} | ${data.siteUrl}`,
-    html: `
+  await sendMail(
+    ADMIN_EMAIL,
+    `Новая заявка #${data.orderId} — ${data.productType} | ${data.siteUrl}`,
+    `
 <h2>Новая заявка #${escapeHtml(data.orderId)}</h2>
 <ul>
   <li><b>Тип:</b> ${escapeHtml(data.productType)}</li>
@@ -221,5 +222,5 @@ export async function sendAdminNotification(data: {
 </ul>
 <p><a href="https://shtrafometer.ru/admin/orders/${encodeURIComponent(data.orderId)}">Открыть в админке</a></p>
     `.trim(),
-  });
+  );
 }
