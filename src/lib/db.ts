@@ -78,4 +78,77 @@ export async function ensureSchema(): Promise<void> {
 
   await query(`CREATE INDEX IF NOT EXISTS idx_check_logs_domain ON check_logs (domain)`);
   await query(`CREATE INDEX IF NOT EXISTS idx_check_logs_created_at ON check_logs (created_at DESC)`);
+
+  // ─── Users table ────────────────────────────────────────────────────
+  await query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL UNIQUE,
+      email TEXT,
+      email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+      company_name TEXT,
+      company_inn TEXT,
+      last_login_at TIMESTAMPTZ,
+      login_count INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+  await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users (phone)`);
+
+  // ─── OTP codes table ───────────────────────────────────────────────
+  await query(`
+    CREATE TABLE IF NOT EXISTS otp_codes (
+      id TEXT PRIMARY KEY,
+      phone TEXT NOT NULL,
+      code TEXT NOT NULL,
+      purpose TEXT NOT NULL DEFAULT 'login',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expires_at TIMESTAMPTZ NOT NULL,
+      used BOOLEAN NOT NULL DEFAULT FALSE,
+      attempts INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_otp_phone ON otp_codes (phone, created_at DESC)`);
+
+  // ─── User sessions table ───────────────────────────────────────────
+  await query(`
+    CREATE TABLE IF NOT EXISTS user_sessions (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      expires_at TIMESTAMPTZ NOT NULL,
+      ip TEXT,
+      user_agent TEXT
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_user_sessions_user ON user_sessions (user_id)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_user_sessions_expires ON user_sessions (expires_at)`);
+
+  // ─── User sites table ──────────────────────────────────────────────
+  await query(`
+    CREATE TABLE IF NOT EXISTS user_sites (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      domain TEXT NOT NULL,
+      added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_check_at TIMESTAMPTZ,
+      last_violations INTEGER NOT NULL DEFAULT 0,
+      last_max_fine INTEGER NOT NULL DEFAULT 0,
+      last_check_result JSONB,
+      monitoring_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+      UNIQUE(user_id, domain)
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_user_sites_user ON user_sites (user_id)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_user_sites_domain ON user_sites (domain)`);
+
+  // ─── Orders: add user columns (safe migration) ─────────────────────
+  await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(id)`);
+  await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_id TEXT`);
+  await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status TEXT`);
+  await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ`);
+  await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ`);
+  await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMPTZ`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders (user_id) WHERE user_id IS NOT NULL`);
 }

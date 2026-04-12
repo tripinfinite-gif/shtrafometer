@@ -30,6 +30,8 @@ export async function GET(request: NextRequest) {
       violations: o.violations,
       totalMaxFine: o.totalMaxFine,
       status: o.status,
+      productType: o.productType,
+      userId: (o as unknown as Record<string, unknown>).userId as string | undefined,
     }));
 
     const stats = await getStats();

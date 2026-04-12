@@ -148,6 +148,53 @@ export interface CheckLogsResponse {
   };
 }
 
+// ─── User (personal cabinet) ────────────────────────────────────────
+
+export interface User {
+  id: string;
+  createdAt: string;
+  name: string;
+  phone: string;               // +7XXXXXXXXXX
+  email: string | null;
+  emailVerified: boolean;
+  companyName: string | null;
+  companyInn: string | null;
+  lastLoginAt: string | null;
+  loginCount: number;
+}
+
+export interface UserSession {
+  id: string;
+  userId: string;
+  createdAt: string;
+  expiresAt: string;
+  ip: string | null;
+  userAgent: string | null;
+}
+
+export interface OtpCode {
+  id: string;
+  phone: string;
+  code: string;
+  purpose: 'login' | 'email_verify';
+  createdAt: string;
+  expiresAt: string;
+  used: boolean;
+  attempts: number;
+}
+
+export interface UserSite {
+  id: string;
+  userId: string;
+  domain: string;
+  addedAt: string;
+  lastCheckAt: string | null;
+  lastViolations: number;
+  lastMaxFine: number;
+  lastCheckResult: import('@/checks/types').CheckResponse | null;
+  monitoringEnabled: boolean;
+}
+
 // ─── Auth ───────────────────────────────────────────────────────────
 
 export interface SessionPayload {
@@ -169,6 +216,8 @@ export interface OrderListItem {
   violations: number;
   totalMaxFine: number;
   status: OrderStatus;
+  productType?: string;
+  userId?: string;
 }
 
 export interface OrdersListResponse {

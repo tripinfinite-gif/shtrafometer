@@ -114,9 +114,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
-      // Update order status
+      // Update order status + payment fields
       order.status = 'in_progress';
       await saveOrder(order);
+
+      // Update payment-specific fields (not in saveOrder)
+      await import('@/lib/db').then(({ query: q }) =>
+        q(`UPDATE orders SET payment_status = 'succeeded', paid_at = NOW(), payment_id = $1 WHERE id = $2`,
+          [payment.id, orderId])
+      ).catch(err => console.error('[WEBHOOK] Failed to update payment fields:', err));
 
       // Send confirmation emails (fire-and-forget)
       if (order.email) {
@@ -148,6 +154,9 @@ export async function POST(request: NextRequest) {
       if (order && order.status === 'new') {
         order.status = 'cancelled';
         await saveOrder(order);
+        await import('@/lib/db').then(({ query: q }) =>
+          q(`UPDATE orders SET payment_status = 'canceled' WHERE id = $1`, [orderId])
+        ).catch(() => {});
         console.log(`[WEBHOOK] Order ${orderId} cancelled`);
       }
     }

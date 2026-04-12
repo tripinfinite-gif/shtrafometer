@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
+import { isValidUserSession } from './lib/user-auth';
 
-const SESSION_COOKIE = 'admin_session';
+// ─── Admin auth (JWT) ───────────────────────────────────────────────
+
+const ADMIN_SESSION_COOKIE = 'admin_session';
+const USER_SESSION_COOKIE = 'user_session';
 
 function getSecret(): Uint8Array {
   const secret = process.env.SESSION_SECRET;
@@ -12,7 +16,7 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-async function verifyToken(token: string): Promise<boolean> {
+async function verifyAdminToken(token: string): Promise<boolean> {
   try {
     await jwtVerify(token, getSecret());
     return true;
@@ -21,45 +25,73 @@ async function verifyToken(token: string): Promise<boolean> {
   }
 }
 
+// ─── Proxy ──────────────────────────────────────────────────────────
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Only protect /admin/* routes (except /admin/login)
-  if (!pathname.startsWith('/admin') || pathname === '/admin/login') {
-    return NextResponse.next();
-  }
-
-  // Also protect /api/admin/* routes
-  const isAdminRoute = pathname.startsWith('/admin') && pathname !== '/admin/login';
+  // ── Admin routes (JWT auth) ─────────────────────────────────────
+  const isAdminPage = pathname.startsWith('/admin') && pathname !== '/admin/login';
   const isAdminApi = pathname.startsWith('/api/admin');
 
-  if (!isAdminRoute && !isAdminApi) {
+  if (isAdminPage || isAdminApi) {
+    const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
+
+    if (!token) {
+      if (isAdminApi) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      return NextResponse.redirect(new URL('/admin/login', request.url));
+    }
+
+    const valid = await verifyAdminToken(token);
+    if (!valid) {
+      if (isAdminApi) {
+        return NextResponse.json({ error: 'Session expired' }, { status: 401 });
+      }
+      const response = NextResponse.redirect(new URL('/admin/login', request.url));
+      response.cookies.delete(ADMIN_SESSION_COOKIE);
+      return response;
+    }
+
     return NextResponse.next();
   }
 
-  const token = request.cookies.get(SESSION_COOKIE)?.value;
+  // ── Cabinet routes (server session auth) ────────────────────────
+  const isCabinetPage = pathname.startsWith('/cabinet');
+  const isCabinetApi = pathname.startsWith('/api/cabinet');
 
-  if (!token) {
-    if (isAdminApi) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    return NextResponse.redirect(new URL('/admin/login', request.url));
-  }
+  if (isCabinetPage || isCabinetApi) {
+    const sessionToken = request.cookies.get(USER_SESSION_COOKIE)?.value;
 
-  const valid = await verifyToken(token);
-  if (!valid) {
-    if (isAdminApi) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 });
+    if (!sessionToken) {
+      if (isCabinetApi) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      return NextResponse.redirect(new URL('/auth/login', request.url));
     }
-    // Clear invalid cookie and redirect
-    const response = NextResponse.redirect(new URL('/admin/login', request.url));
-    response.cookies.delete(SESSION_COOKIE);
-    return response;
+
+    const valid = await isValidUserSession(sessionToken);
+    if (!valid) {
+      if (isCabinetApi) {
+        return NextResponse.json({ error: 'Session expired' }, { status: 401 });
+      }
+      const response = NextResponse.redirect(new URL('/auth/login', request.url));
+      response.cookies.delete(USER_SESSION_COOKIE);
+      return response;
+    }
+
+    return NextResponse.next();
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/admin/:path*'],
+  matcher: [
+    '/admin/:path*',
+    '/api/admin/:path*',
+    '/cabinet/:path*',
+    '/api/cabinet/:path*',
+  ],
 };

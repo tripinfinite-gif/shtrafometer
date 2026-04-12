@@ -1,0 +1,32 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getCurrentUser } from '@/lib/user-auth';
+import { getUserSite, addUserSite, updateSiteCheck } from '@/lib/user-storage';
+import { analyzeUrl } from '@/checks/engine';
+
+// POST /api/cabinet/sites/[domain]/check — run check for a site
+export async function POST(
+  _request: NextRequest,
+  { params }: { params: Promise<{ domain: string }> },
+) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { domain } = await params;
+  const decodedDomain = decodeURIComponent(domain);
+
+  // Ensure site exists
+  let site = await getUserSite(user.id, decodedDomain);
+  if (!site) {
+    site = await addUserSite(user.id, decodedDomain);
+  }
+
+  try {
+    const result = await analyzeUrl(`https://${decodedDomain}`);
+    await updateSiteCheck(user.id, decodedDomain, result);
+
+    return NextResponse.json({ success: true, result });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Ошибка проверки';
+    return NextResponse.json({ error: message }, { status: 422 });
+  }
+}

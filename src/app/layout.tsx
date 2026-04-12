@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,11 +18,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const cookieStore = await cookies();
+  const isLoggedIn = !!cookieStore.get('user_session')?.value;
   return (
     <html lang="ru">
       <body className="min-h-screen bg-white text-gray-800">
@@ -67,6 +70,21 @@ export default function RootLayout({
               >
                 Проверить сайт
               </Link>
+              {isLoggedIn ? (
+                <Link
+                  href="/cabinet"
+                  className="text-[13px] font-medium text-gray-600 hover:text-[#6C5CE7] transition-colors hidden sm:block"
+                >
+                  Кабинет
+                </Link>
+              ) : (
+                <Link
+                  href="/auth/login"
+                  className="text-[13px] font-medium text-gray-600 hover:text-[#6C5CE7] transition-colors hidden sm:block"
+                >
+                  Войти
+                </Link>
+              )}
             </div>
           </div>
         </nav>

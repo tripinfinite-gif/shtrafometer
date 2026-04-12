@@ -977,6 +977,15 @@ export default function Home() {
               {/* ────── Order Form (shared for all products) ────── */}
               {showOrderForm && orderStatus !== "sent" && (
                 <div className="mt-6 card rounded-2xl p-8 sm:p-10 max-w-lg mx-auto animate-fade-up">
+                  {/* Cabinet shortcut */}
+                  <div className="mb-5 text-center">
+                    <a
+                      href={`/auth/register?returnUrl=${encodeURIComponent('/cabinet')}&product=${selectedProduct}&site=${encodeURIComponent(result?.url?.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] || '')}`}
+                      className="text-[13px] text-[#6C5CE7] hover:underline"
+                    >
+                      Оформить через личный кабинет &rarr;
+                    </a>
+                  </div>
                   <h3 className="text-[17px] font-semibold text-gray-800 mb-1 text-center">
                     {selectedProduct === "report" ? "Оформление отчёта" :
                      selectedProduct === "monitoring" ? "Подключение мониторинга" :

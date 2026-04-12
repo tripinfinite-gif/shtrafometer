@@ -9,8 +9,8 @@
 - Next.js 16 (App Router) + TypeScript + Tailwind CSS 4
 - Cheerio (HTML-парсинг), jose (JWT), bcryptjs (пароли)
 - ssh2 + basic-ftp (автофиксы)
-- PostgreSQL (Vercel Postgres / Neon) — хранение заявок
-- Деплой: Vercel
+- PostgreSQL 16 — хранение заявок, пользователей, сессий
+- Деплой: Coolify на Beget VPS (Docker, auto-deploy из GitHub)
 
 ## Архитектура
 
@@ -25,10 +25,23 @@ src/
 │   │   ├── orders/[id]/page.tsx  — Детали заявки + результаты проверки
 │   │   ├── orders/[id]/fixes/    — UI автоисправлений (SSH/FTP)
 │   │   └── users/page.tsx        — История по доменам
+│   ├── auth/
+│   │   ├── login/page.tsx        — Вход по SMS OTP (телефон → 6-значный код)
+│   │   └── register/page.tsx     — Регистрация (имя + телефон → код → кабинет)
+│   ├── cabinet/
+│   │   ├── layout.tsx            — Layout кабинета (sidebar/bottom nav)
+│   │   ├── page.tsx              — Дашборд пользователя
+│   │   ├── sites/page.tsx        — Мои сайты (список доменов)
+│   │   ├── sites/[domain]/       — Детали сайта (нарушения, заказ услуг)
+│   │   ├── orders/page.tsx       — Мои заказы (фильтры, статусы)
+│   │   ├── orders/[id]/page.tsx  — Детали заказа (таймлайн, оплата)
+│   │   └── settings/page.tsx     — Настройки (email, компания)
 │   └── api/
 │       ├── check/route.ts        — POST: анализ URL → нарушения + штрафы
 │       ├── order/route.ts        — POST: создание заявки (сохраняет checkResult)
-│       ├── auth/{login,logout}/   — JWT-авторизация
+│       ├── auth/{login,logout}/   — JWT-авторизация (админ)
+│       ├── auth/{send-code,verify-code,user-logout}/ — SMS OTP авторизация (пользователи)
+│       ├── cabinet/              — API личного кабинета (me, sites, orders, pay)
 │       └── admin/                — CRUD заявок, история, автофиксы
 ├── checks/
 │   ├── engine.ts                 — Оркестратор: fetch страницы → определение типа сайта → запуск модулей
@@ -48,11 +61,16 @@ src/
 │   ├── executor.ts               — Применение фиксов (бэкап → вставка → отчёт)
 │   └── plan-builder.ts           — Маппинг нарушений → фиксы
 ├── lib/
-│   ├── types.ts                  — Общие типы: Order, Fix, FixPlan, ConnectionConfig
-│   ├── storage.ts                — PostgreSQL CRUD (Vercel Postgres)
-│   ├── db.ts                     — Схема БД (auto-migrate)
-│   └── auth.ts                   — JWT сессии, bcrypt-пароли
-└── proxy.ts                      — Защита /admin/* (Next.js 16 proxy, бывший middleware)
+│   ├── types.ts                  — Общие типы: Order, User, UserSite, Fix, FixPlan
+│   ├── storage.ts                — PostgreSQL CRUD (заказы, админка)
+│   ├── db.ts                     — Схема БД (auto-migrate, 6 таблиц)
+│   ├── auth.ts                   — JWT сессии админа, bcrypt-пароли
+│   ├── user-auth.ts              — SMS OTP авторизация пользователей, серверные сессии
+│   ├── sms.ts                    — SMS.ru API клиент (отправка OTP)
+│   ├── user-storage.ts           — CRUD для user_sites
+│   ├── yookassa.ts               — YooKassa API (платежи)
+│   └── email.ts                  — Resend API (email-уведомления)
+└── proxy.ts                      — Защита /admin/* и /cabinet/* (Next.js 16 proxy)
 ```
 
 ## Ключевые решения
@@ -60,7 +78,9 @@ src/
 - **Footer-детекция**: ищет `<footer>`, `.footer`, `[class*="footer"]` и элементы в нижних 20% DOM.
 - **Proxy вместо middleware**: Next.js 16 переименовал middleware.ts → proxy.ts, функция `proxy()` вместо `middleware()`.
 - **Пароль в env**: хранится как base64-encoded bcrypt (переменная ADMIN_PASSWORD_HASH_B64), т.к. `$` в .env ломает парсинг.
-- **Хранилище**: PostgreSQL через @vercel/postgres, автомиграция при первом запуске.
+- **Хранилище**: PostgreSQL 16 через pg driver, автомиграция при первом запуске.
+- **Личный кабинет**: SMS OTP (SMS.ru) → серверные сессии в PostgreSQL (30 дней). Пользователь может проверять несколько сайтов, заказывать несколько услуг для каждого. Каждый заказ — отдельная оплата через YooKassa.
+- **Деплой**: Coolify на Beget VPS (Docker). Auto-deploy из GitHub (main). Coolify dashboard: http://109.69.18.80:8000.
 
 ## Законы и проверки
 Полная база знаний: `rf_website_compliance.md` (55 пунктов чек-листа).
