@@ -1,5 +1,4 @@
-import { sql } from '@vercel/postgres';
-import { ensureSchema } from './db';
+import { query, ensureSchema } from './db';
 import type { Order, OrderStatus, ProductType, DomainHistory, DomainCheck, CheckLog } from './types';
 
 // Auto-migrate on first call
@@ -52,33 +51,33 @@ function rowToOrder(row: Record<string, unknown>): Order {
 
 export async function getOrder(id: string): Promise<Order | null> {
   await ready();
-  const { rows } = await sql`SELECT * FROM orders WHERE id = ${id}`;
+  const { rows } = await query('SELECT * FROM orders WHERE id = $1', [id]);
   if (rows.length === 0) return null;
   return rowToOrder(rows[0]);
 }
 
 export async function getAllOrders(): Promise<Order[]> {
   await ready();
-  const { rows } = await sql`SELECT * FROM orders ORDER BY created_at DESC`;
+  const { rows } = await query('SELECT * FROM orders ORDER BY created_at DESC');
   return rows.map(rowToOrder);
 }
 
 export async function getOrdersByStatus(status: OrderStatus): Promise<Order[]> {
   await ready();
-  const { rows } = await sql`SELECT * FROM orders WHERE status = ${status} ORDER BY created_at DESC`;
+  const { rows } = await query('SELECT * FROM orders WHERE status = $1 ORDER BY created_at DESC', [status]);
   return rows.map(rowToOrder);
 }
 
 export async function getOrdersByDomain(domain: string): Promise<Order[]> {
   await ready();
   const normalizedDomain = domain.toLowerCase();
-  const { rows } = await sql`SELECT * FROM orders WHERE domain = ${normalizedDomain} ORDER BY created_at DESC`;
+  const { rows } = await query('SELECT * FROM orders WHERE domain = $1 ORDER BY created_at DESC', [normalizedDomain]);
   return rows.map(rowToOrder);
 }
 
 export async function getDomainHistories(): Promise<DomainHistory[]> {
   await ready();
-  const { rows } = await sql`
+  const { rows } = await query(`
     SELECT domain,
            json_agg(json_build_object(
              'orderId', id,
@@ -96,7 +95,7 @@ export async function getDomainHistories(): Promise<DomainHistory[]> {
     WHERE domain != ''
     GROUP BY domain
     ORDER BY MAX(created_at) DESC
-  `;
+  `);
 
   return rows.map((row) => ({
     domain: row.domain as string,
@@ -110,25 +109,9 @@ export async function getDomainHistories(): Promise<DomainHistory[]> {
 
 export async function saveOrder(order: Order): Promise<void> {
   await ready();
-  await sql`
+  await query(`
     INSERT INTO orders (id, created_at, name, phone, email, site_url, domain, violations, total_max_fine, price, status, product_type, notes, check_result, fix_plan)
-    VALUES (
-      ${order.id},
-      ${order.createdAt},
-      ${order.name},
-      ${order.phone},
-      ${order.email},
-      ${order.siteUrl},
-      ${order.domain},
-      ${order.violations},
-      ${order.totalMaxFine},
-      ${order.price},
-      ${order.status},
-      ${order.productType || 'fix'},
-      ${order.notes || null},
-      ${order.checkResult ? JSON.stringify(order.checkResult) : null},
-      ${order.fixPlan ? JSON.stringify(order.fixPlan) : null}
-    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
     ON CONFLICT (id) DO UPDATE SET
       name = EXCLUDED.name,
       phone = EXCLUDED.phone,
@@ -143,23 +126,35 @@ export async function saveOrder(order: Order): Promise<void> {
       notes = EXCLUDED.notes,
       check_result = EXCLUDED.check_result,
       fix_plan = EXCLUDED.fix_plan
-  `;
+  `, [
+    order.id,
+    order.createdAt,
+    order.name,
+    order.phone,
+    order.email,
+    order.siteUrl,
+    order.domain,
+    order.violations,
+    order.totalMaxFine,
+    order.price,
+    order.status,
+    order.productType || 'fix',
+    order.notes || null,
+    order.checkResult ? JSON.stringify(order.checkResult) : null,
+    order.fixPlan ? JSON.stringify(order.fixPlan) : null,
+  ]);
 }
 
 export async function updateOrderStatus(id: string, status: OrderStatus): Promise<Order | null> {
   await ready();
-  const { rows } = await sql`
-    UPDATE orders SET status = ${status} WHERE id = ${id} RETURNING *
-  `;
+  const { rows } = await query('UPDATE orders SET status = $1 WHERE id = $2 RETURNING *', [status, id]);
   if (rows.length === 0) return null;
   return rowToOrder(rows[0]);
 }
 
 export async function updateOrderNotes(id: string, notes: string): Promise<Order | null> {
   await ready();
-  const { rows } = await sql`
-    UPDATE orders SET notes = ${notes} WHERE id = ${id} RETURNING *
-  `;
+  const { rows } = await query('UPDATE orders SET notes = $1 WHERE id = $2 RETURNING *', [notes, id]);
   if (rows.length === 0) return null;
   return rowToOrder(rows[0]);
 }
@@ -197,7 +192,7 @@ export async function createOrder(data: {
     domain: data.siteUrl ? extractDomain(data.siteUrl) : '',
     violations: data.violations || 0,
     totalMaxFine: data.totalMaxFine || 0,
-    price: PRODUCT_PRICES[productType] ?? (() => { throw new Error(`Invalid product type: ${productType}`); })(),
+    price: PRODUCT_PRICES[productType] ?? 9900,
     status: 'new',
     productType,
     checkResult: data.checkResult,
@@ -217,7 +212,7 @@ export async function getStats(): Promise<{
   uniqueDomains: number;
 }> {
   await ready();
-  const { rows } = await sql`
+  const { rows } = await query(`
     SELECT
       COUNT(*) AS total,
       COUNT(*) FILTER (WHERE status = 'new') AS new_count,
@@ -225,7 +220,7 @@ export async function getStats(): Promise<{
       COUNT(*) FILTER (WHERE status = 'completed') AS completed_count,
       COUNT(DISTINCT domain) FILTER (WHERE domain != '') AS unique_domains
     FROM orders
-  `;
+  `);
 
   const r = rows[0];
   return {
@@ -274,15 +269,15 @@ export async function saveCheckLog(data: {
   await ready();
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const domain = extractDomain(data.url);
-  await sql`
+  await query(`
     INSERT INTO check_logs (id, url, domain, ip, user_agent, violations, warnings, total_max_fine, site_type, risk_level, success, error, duration_ms)
-    VALUES (
-      ${id}, ${data.url}, ${domain}, ${data.ip}, ${data.userAgent},
-      ${data.violations}, ${data.warnings}, ${data.totalMaxFine},
-      ${data.siteType}, ${data.riskLevel}, ${data.success},
-      ${data.error || null}, ${data.durationMs}
-    )
-  `;
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+  `, [
+    id, data.url, domain, data.ip, data.userAgent,
+    data.violations, data.warnings, data.totalMaxFine,
+    data.siteType, data.riskLevel, data.success,
+    data.error || null, data.durationMs,
+  ]);
 }
 
 export async function getCheckLogs(opts?: {
@@ -296,18 +291,19 @@ export async function getCheckLogs(opts?: {
 
   if (opts?.domain) {
     const d = opts.domain.toLowerCase();
-    const { rows: countRows } = await sql`SELECT COUNT(*) AS cnt FROM check_logs WHERE domain = ${d}`;
-    const { rows } = await sql`
-      SELECT * FROM check_logs WHERE domain = ${d}
-      ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
-    `;
+    const { rows: countRows } = await query('SELECT COUNT(*) AS cnt FROM check_logs WHERE domain = $1', [d]);
+    const { rows } = await query(
+      'SELECT * FROM check_logs WHERE domain = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+      [d, limit, offset],
+    );
     return { logs: rows.map(rowToCheckLog), total: Number(countRows[0].cnt) };
   }
 
-  const { rows: countRows } = await sql`SELECT COUNT(*) AS cnt FROM check_logs`;
-  const { rows } = await sql`
-    SELECT * FROM check_logs ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}
-  `;
+  const { rows: countRows } = await query('SELECT COUNT(*) AS cnt FROM check_logs');
+  const { rows } = await query(
+    'SELECT * FROM check_logs ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+    [limit, offset],
+  );
   return { logs: rows.map(rowToCheckLog), total: Number(countRows[0].cnt) };
 }
 
@@ -318,14 +314,14 @@ export async function getCheckLogsStats(): Promise<{
   avgViolations: number;
 }> {
   await ready();
-  const { rows } = await sql`
+  const { rows } = await query(`
     SELECT
       COUNT(*) AS total,
       COUNT(DISTINCT domain) FILTER (WHERE domain != '') AS unique_domains,
       COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) AS today,
       COALESCE(AVG(violations) FILTER (WHERE success = TRUE), 0) AS avg_violations
     FROM check_logs
-  `;
+  `);
   const r = rows[0];
   return {
     totalChecks: Number(r.total),

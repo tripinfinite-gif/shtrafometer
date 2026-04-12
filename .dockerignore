@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.env*
+!.env.example
+docs
+planes
+.business
+scripts
+*.md
+!CLAUDE.md
