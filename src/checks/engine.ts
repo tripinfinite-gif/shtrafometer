@@ -9,6 +9,9 @@ import { checkContent } from './mod-content';
 import { checkSecurity } from './mod-security';
 import { checkEcommerce } from './mod-ecommerce';
 import { checkSeo } from './mod-seo';
+import { detectCms } from './mod-cms-detect';
+import { estimatePageCount } from './mod-page-count';
+import { calculateFixEstimate } from './fix-pricing';
 
 // ─── Загрузка страницы ───────────────────────────────────────────────
 
@@ -462,7 +465,65 @@ export async function analyzeUrl(inputUrl: string): Promise<CheckResponse> {
     100 - violations.reduce((sum, v) => sum + (severityPenalty[v.severity] || 5), 0)
   ));
 
-  // 12. Формирование ответа
+  // 12. Site info (CMS, pages, forms, Google services, fix pricing)
+  let siteInfo: CheckResponse['siteInfo'];
+  try {
+    const cms = detectCms($, html, responseHeaders);
+    const pageCount = await estimatePageCount($, finalUrl);
+
+    // Count forms collecting personal data
+    let formsWithPdCount = 0;
+    $('form').each((_, formEl) => {
+      const $form = $(formEl);
+      let hasEmail = false, hasPhone = false, hasName = false;
+      $form.find('input').each((_, inputEl) => {
+        const t = ($(inputEl).attr('type') || '').toLowerCase();
+        const n = ($(inputEl).attr('name') || '').toLowerCase();
+        const p = ($(inputEl).attr('placeholder') || '').toLowerCase();
+        if (t === 'email' || n.includes('email') || p.includes('email') || p.includes('почт')) hasEmail = true;
+        if (t === 'tel' || n.includes('phone') || n.includes('tel') || p.includes('телеф')) hasPhone = true;
+        if (n.includes('name') || n.includes('имя') || p.includes('имя') || p.includes('фио')) hasName = true;
+      });
+      if (hasEmail || hasPhone || hasName) formsWithPdCount++;
+    });
+
+    // Detect Google services from violations
+    const googleServices: string[] = [];
+    const googleMap: Record<string, string> = {
+      'loc-02': 'analytics', 'loc-03': 'tag-manager', 'loc-04': 'recaptcha',
+      'loc-05': 'fonts', 'loc-06': 'maps', 'loc-07': 'youtube',
+    };
+    for (const v of violations) {
+      if (googleMap[v.id]) googleServices.push(googleMap[v.id]);
+    }
+
+    // Calculate fix estimate
+    const fixEstimate = calculateFixEstimate(violations, cms.cmsType, pageCount.estimatedPages, formsWithPdCount);
+
+    siteInfo = {
+      cmsType: cms.cmsType,
+      cmsLabel: cms.cmsLabel,
+      cmsMultiplier: cms.cmsMultiplier,
+      estimatedPages: pageCount.estimatedPages,
+      formsWithPdCount,
+      googleServices,
+      fixEstimate: fixEstimate.items.length > 0 ? {
+        items: fixEstimate.items.map(i => ({
+          violationId: i.violationId,
+          title: i.title,
+          finalPrice: i.finalPrice,
+          type: i.type,
+          typeLabel: i.typeLabel,
+        })),
+        total: fixEstimate.total,
+        discountedTotal: fixEstimate.discountedTotal,
+      } : undefined,
+    };
+  } catch (err) {
+    console.error('[ENGINE] Site info detection failed:', err);
+  }
+
+  // 13. Формирование ответа
   return {
     url: finalUrl,
     checkedAt: new Date().toISOString(),
@@ -481,5 +542,6 @@ export async function analyzeUrl(inputUrl: string): Promise<CheckResponse> {
       passed: passed.length,
     },
     finesByLaw,
+    siteInfo,
   };
 }

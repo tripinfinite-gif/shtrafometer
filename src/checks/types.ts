@@ -57,6 +57,26 @@ export interface CheckResponse {
     passed: number;
   };
   finesByLaw: Record<string, { min: number; max: number; count: number }>;
+  // Site technical info (v2)
+  siteInfo?: {
+    cmsType: string;
+    cmsLabel: string;
+    cmsMultiplier: number;
+    estimatedPages: number;
+    formsWithPdCount: number;
+    googleServices: string[];
+    fixEstimate?: {
+      items: Array<{
+        violationId: string;
+        title: string;
+        finalPrice: number;
+        type: 'auto' | 'semi-auto' | 'manual' | 'expert';
+        typeLabel: string;
+      }>;
+      total: number;
+      discountedTotal: number;
+    };
+  };
 }
 
 export interface FineRecord {
