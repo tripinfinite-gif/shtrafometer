@@ -170,5 +170,7 @@ export async function ensureSchema(): Promise<void> {
   await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ`);
   await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ`);
   await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMPTZ`);
+  await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS questionnaire JSONB`);
+  await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_percent INTEGER NOT NULL DEFAULT 0`);
   await query(`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders (user_id) WHERE user_id IS NOT NULL`);
 }

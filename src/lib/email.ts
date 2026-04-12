@@ -204,3 +204,75 @@ export async function sendAdminNotification(data: {
     `.trim(),
   );
 }
+
+// ─── Monitoring Report Email ────────────────────────────────────────
+
+export async function sendMonitoringReport(
+  email: string,
+  data: {
+    domain: string;
+    complianceScore: number;
+    prevScore: number;
+    violations: number;
+    prevViolations: number;
+    totalMaxFine: number;
+    newViolations: number;
+    fixedViolations: number;
+    recurringViolations: number;
+  },
+): Promise<void> {
+  const scoreDiff = data.complianceScore - data.prevScore;
+  const scoreTrend = scoreDiff > 0 ? `\u2191${scoreDiff}` : scoreDiff < 0 ? `\u2193${Math.abs(scoreDiff)}` : '\u2192 без изменений';
+  const scoreColor = data.complianceScore > 80 ? '#22C55E' : data.complianceScore > 60 ? '#EAB308' : data.complianceScore > 30 ? '#F97316' : '#EF4444';
+
+  await sendMail(
+    email,
+    `${escapeHtml(data.domain)} \u2014 Score: ${data.complianceScore}/100 (${scoreTrend}) | \u0428\u0442\u0440\u0430\u0444\u043e\u043c\u0435\u0442\u0440`,
+    `
+<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;">
+  <div style="background:#6C5CE7;padding:24px;border-radius:16px 16px 0 0;text-align:center;">
+    <h1 style="color:white;margin:0;font-size:20px;">\u0415\u0436\u0435\u043c\u0435\u0441\u044f\u0447\u043d\u044b\u0439 \u043e\u0442\u0447\u0451\u0442</h1>
+    <p style="color:rgba(255,255,255,0.8);margin:4px 0 0;font-size:14px;">${escapeHtml(data.domain)}</p>
+  </div>
+  <div style="background:white;padding:24px;border:1px solid #E5E7EB;border-top:none;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="display:inline-block;width:80px;height:80px;border-radius:50%;border:6px solid ${scoreColor};line-height:68px;text-align:center;">
+        <span style="font-size:28px;font-weight:bold;color:#1F2937;">${data.complianceScore}</span>
+      </div>
+      <p style="color:#6B7280;font-size:13px;margin:8px 0 0;">Compliance Score (${scoreTrend})</p>
+    </div>
+
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+      <tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #F3F4F6;color:#6B7280;font-size:13px;">\u041d\u0430\u0440\u0443\u0448\u0435\u043d\u0438\u0439</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #F3F4F6;text-align:right;font-weight:600;">${data.violations} ${data.prevViolations !== data.violations ? `(\u0431\u044b\u043b\u043e ${data.prevViolations})` : ''}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #F3F4F6;color:#6B7280;font-size:13px;">\u041c\u0430\u043a\u0441. \u0448\u0442\u0440\u0430\u0444</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #F3F4F6;text-align:right;font-weight:600;">${formatMoney(data.totalMaxFine)}</td>
+      </tr>
+      ${data.newViolations > 0 ? `<tr><td style="padding:8px 12px;border-bottom:1px solid #F3F4F6;color:#EF4444;font-size:13px;">\u041d\u043e\u0432\u044b\u0445 \u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0438\u0439</td><td style="padding:8px 12px;border-bottom:1px solid #F3F4F6;text-align:right;font-weight:600;color:#EF4444;">+${data.newViolations}</td></tr>` : ''}
+      ${data.fixedViolations > 0 ? `<tr><td style="padding:8px 12px;border-bottom:1px solid #F3F4F6;color:#22C55E;font-size:13px;">\u0418\u0441\u043f\u0440\u0430\u0432\u043b\u0435\u043d\u043e</td><td style="padding:8px 12px;border-bottom:1px solid #F3F4F6;text-align:right;font-weight:600;color:#22C55E;">${data.fixedViolations}</td></tr>` : ''}
+    </table>
+
+    <div style="text-align:center;">
+      <a href="https://shtrafometer.ru/cabinet/sites/${encodeURIComponent(data.domain)}" style="display:inline-block;background:#6C5CE7;color:white;padding:12px 32px;border-radius:12px;text-decoration:none;font-weight:500;font-size:14px;">
+        \u041f\u043e\u0441\u043c\u043e\u0442\u0440\u0435\u0442\u044c \u043f\u043e\u043b\u043d\u044b\u0439 \u043e\u0442\u0447\u0451\u0442
+      </a>
+    </div>
+    ${data.violations > 0 ? `
+    <p style="text-align:center;margin-top:16px;">
+      <a href="https://shtrafometer.ru/cabinet/sites/${encodeURIComponent(data.domain)}" style="color:#6C5CE7;font-size:13px;text-decoration:none;">
+        \u0418\u0441\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u043d\u0430\u0440\u0443\u0448\u0435\u043d\u0438\u044f \u0441\u043e \u0441\u043a\u0438\u0434\u043a\u043e\u0439 50% &rarr;
+      </a>
+    </p>` : ''}
+  </div>
+  <div style="background:#F9FAFB;padding:16px 24px;border-radius:0 0 16px 16px;border:1px solid #E5E7EB;border-top:none;">
+    <p style="color:#9CA3AF;font-size:11px;margin:0;text-align:center;">
+      \u0428\u0442\u0440\u0430\u0444\u043e\u043c\u0435\u0442\u0440 &middot; \u0415\u0436\u0435\u043c\u0435\u0441\u044f\u0447\u043d\u044b\u0439 \u043c\u043e\u043d\u0438\u0442\u043e\u0440\u0438\u043d\u0433 &middot; <a href="https://shtrafometer.ru/cabinet/settings" style="color:#9CA3AF;">\u041e\u0442\u043f\u0438\u0441\u0430\u0442\u044c\u0441\u044f</a>
+    </p>
+  </div>
+</div>
+    `.trim(),
+  );
+}
