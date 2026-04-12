@@ -138,3 +138,27 @@ ADMIN_EMAIL = info@shtrafometer.ru
 - [ ] Email-gate отправляет email
 - [ ] Админка (/admin) доступна
 - [ ] Оплата редиректит на ЮKassa (после настройки ключей)
+- [ ] Регистрация (/auth/register) — получить SMS код, войти
+- [ ] Кабинет (/cabinet) — дашборд, сайты, заказы
+
+## Известные подводные камни (обязательно проверять!)
+
+### 1. DATABASE_URL — имя хоста
+В `DATABASE_URL` использовать **имя контейнера** `shtrafometer-postgres`, НЕ имя сервиса `postgres`.
+Имя `postgres` конфликтует с Coolify's БД и app подключится к чужой базе.
+
+### 2. traefik.docker.network
+ОБЯЗАТЕЛЬНО указывать label `traefik.docker.network=coolify` если контейнер в нескольких Docker-сетях.
+Без этого — Gateway Timeout 504.
+
+### 3. Пароль PostgreSQL
+- Не использовать спецсимволы (`!`, `@`, `#`) в пароле — ломает парсинг DATABASE_URL
+- `POSTGRES_PASSWORD` задаёт пароль только при первом создании volume
+- Для смены: `docker exec shtrafometer-postgres psql -U shtrafometer -c "ALTER USER ... PASSWORD '...'"`
+
+### 4. Деплой нового кода
+```bash
+cd /home/deploy/shtrafometer/repo && git pull origin main
+cd /home/deploy/shtrafometer && docker compose build --no-cache app && docker compose up -d app
+```
+Coolify НЕ автодеплоит из docker-compose — нужен ручной build+up.
