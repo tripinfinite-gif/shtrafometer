@@ -54,62 +54,34 @@ interface ViolationSummary {
 export async function sendEmailGateReport(to: string, data: ViolationSummary): Promise<void> {
   await sendMail(
     to,
-    `Результаты проверки ${data.siteUrl} — ${data.total} нарушений`,
+    `Результаты проверки сайта ${escapeHtml(data.siteUrl)}`,
     `
 <!DOCTYPE html>
 <html lang="ru">
 <head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#f8f9fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
-  <div style="max-width:600px;margin:0 auto;padding:40px 20px">
-    <div style="background:#fff;border-radius:16px;padding:40px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
-      <div style="text-align:center;margin-bottom:32px">
-        <div style="display:inline-block;background:#6C5CE7;border-radius:10px;padding:8px 12px">
-          <span style="color:#fff;font-size:18px;font-weight:700">Штрафометр</span>
-        </div>
-      </div>
+<body style="margin:0;padding:0;font-family:Arial,sans-serif;color:#333">
+  <div style="max-width:600px;margin:0 auto;padding:20px">
+    <p style="font-size:15px;margin:0 0 16px">Здравствуйте!</p>
 
-      <h1 style="font-size:22px;font-weight:600;color:#212529;text-align:center;margin:0 0 8px">
-        Результаты проверки
-      </h1>
-      <p style="font-size:14px;color:#6c757d;text-align:center;margin:0 0 24px">
-        ${escapeHtml(data.siteUrl)}
-      </p>
+    <p style="font-size:15px;line-height:1.6;margin:0 0 16px">
+      Мы провели автоматическую проверку сайта <b>${escapeHtml(data.siteUrl)}</b> на соответствие законодательству РФ.
+    </p>
 
-      <div style="background:#FEF2F2;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px">
-        <p style="font-size:32px;font-weight:700;color:#EF4444;margin:0">${data.total}</p>
-        <p style="font-size:13px;color:#6c757d;margin:4px 0 0">нарушений найдено</p>
-      </div>
+    <p style="font-size:15px;line-height:1.6;margin:0 0 16px">
+      Найдено нарушений: <b>${data.total}</b>.<br>
+      Потенциальные штрафы: до <b>${formatMoney(data.totalMaxFine)}</b>.
+    </p>
 
-      <div style="background:#F3F4F6;border-radius:12px;padding:20px;text-align:center;margin-bottom:32px">
-        <p style="font-size:13px;color:#6c757d;margin:0 0 4px">Потенциальные штрафы до</p>
-        <p style="font-size:24px;font-weight:700;color:#212529;margin:0">${formatMoney(data.totalMaxFine)}</p>
-      </div>
+    <p style="font-size:15px;line-height:1.6;margin:0 0 16px">
+      Для получения полного отчёта с рекомендациями по исправлению перейдите на сайт:
+      <a href="https://shtrafometer.ru" style="color:#6C5CE7">shtrafometer.ru</a>
+    </p>
 
-      <p style="font-size:14px;color:#495057;line-height:1.6;margin:0 0 24px">
-        Мы провели автоматическую проверку вашего сайта по 8 федеральным законам РФ.
-        Обнаружены нарушения, которые могут привести к штрафам при проверке Роскомнадзора, ФАС или Роспотребнадзора.
-      </p>
-
-      <div style="text-align:center;margin-bottom:24px">
-        <a href="https://shtrafometer.ru" style="display:inline-block;background:#6C5CE7;color:#fff;text-decoration:none;padding:14px 32px;border-radius:12px;font-size:14px;font-weight:600">
-          Получить полный PDF-отчёт
-        </a>
-      </div>
-
-      <p style="font-size:12px;color:#adb5bd;text-align:center;margin:0">
-        PDF-отчёт включает: детальное описание каждого нарушения, ссылки на статьи законов,
-        размеры штрафов и пошаговые инструкции по исправлению.
-      </p>
-    </div>
-
-    <div style="text-align:center;padding:24px 0">
-      <p style="font-size:11px;color:#adb5bd;margin:0">
-        ООО «Инворк» | ИНН 7806618194 | info@shtrafometer.ru
-      </p>
-      <p style="font-size:11px;color:#adb5bd;margin:4px 0 0">
-        Результаты носят информационный характер и не являются юридической консультацией.
-      </p>
-    </div>
+    <p style="font-size:13px;color:#999;margin:24px 0 0;border-top:1px solid #eee;padding-top:16px">
+      Штрафометр — сервис проверки сайтов на соответствие законам РФ.<br>
+      ООО «Инворк» | ИНН 7806618194 | info@shtrafometer.ru<br>
+      Результаты носят информационный характер.
+    </p>
   </div>
 </body>
 </html>
