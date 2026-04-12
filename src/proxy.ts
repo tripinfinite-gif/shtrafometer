@@ -6,8 +6,8 @@ const SESSION_COOKIE = 'admin_session';
 function getSecret(): Uint8Array {
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
-    // In middleware, env vars come from next.config or .env.local
-    return new TextEncoder().encode('fallback-dev-secret-change-in-production');
+    console.error('[AUTH] SESSION_SECRET not configured — admin auth will fail');
+    throw new Error('SESSION_SECRET environment variable is required');
   }
   return new TextEncoder().encode(secret);
 }

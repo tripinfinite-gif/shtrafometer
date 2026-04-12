@@ -197,7 +197,7 @@ export async function createOrder(data: {
     domain: data.siteUrl ? extractDomain(data.siteUrl) : '',
     violations: data.violations || 0,
     totalMaxFine: data.totalMaxFine || 0,
-    price: PRODUCT_PRICES[productType] ?? 9900,
+    price: PRODUCT_PRICES[productType] ?? (() => { throw new Error(`Invalid product type: ${productType}`); })(),
     status: 'new',
     productType,
     checkResult: data.checkResult,
