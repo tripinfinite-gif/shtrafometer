@@ -143,6 +143,26 @@ export async function ensureSchema(): Promise<void> {
   await query(`CREATE INDEX IF NOT EXISTS idx_user_sites_user ON user_sites (user_id)`);
   await query(`CREATE INDEX IF NOT EXISTS idx_user_sites_domain ON user_sites (domain)`);
 
+  // ─── Check history table ─────────────────────────────────────────────
+  await query(`
+    CREATE TABLE IF NOT EXISTS check_history (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      domain TEXT NOT NULL,
+      checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      violations INTEGER NOT NULL DEFAULT 0,
+      warnings INTEGER NOT NULL DEFAULT 0,
+      passed INTEGER NOT NULL DEFAULT 0,
+      total_max_fine INTEGER NOT NULL DEFAULT 0,
+      compliance_score INTEGER NOT NULL DEFAULT 100,
+      check_result JSONB,
+      new_violations INTEGER NOT NULL DEFAULT 0,
+      fixed_violations INTEGER NOT NULL DEFAULT 0,
+      recurring_violations INTEGER NOT NULL DEFAULT 0
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_check_history_user_domain ON check_history (user_id, domain, checked_at DESC)`);
+
   // ─── Orders: add user columns (safe migration) ─────────────────────
   await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_id TEXT REFERENCES users(id)`);
   await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_id TEXT`);

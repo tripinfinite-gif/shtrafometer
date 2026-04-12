@@ -69,6 +69,90 @@ export function extractDomain(url: string): string {
   }
 }
 
+// ─── Check History ──────────────────────────────────────────────────
+
+export interface CheckHistoryEntry {
+  id: string;
+  domain: string;
+  checkedAt: string;
+  violations: number;
+  warnings: number;
+  passed: number;
+  totalMaxFine: number;
+  complianceScore: number;
+  newViolations: number;
+  fixedViolations: number;
+  recurringViolations: number;
+}
+
+/** Save check to history with diff vs previous */
+export async function saveCheckHistory(
+  userId: string,
+  domain: string,
+  checkResult: CheckResponse,
+): Promise<CheckHistoryEntry> {
+  const id = randomUUID();
+
+  // Get previous check for diff
+  const prev = await query<Record<string, unknown>>(
+    `SELECT check_result FROM check_history
+     WHERE user_id = $1 AND domain = $2
+     ORDER BY checked_at DESC LIMIT 1`,
+    [userId, domain],
+  );
+
+  let newViolations = 0;
+  let fixedViolations = 0;
+  let recurringViolations = 0;
+
+  if (prev.rows.length > 0) {
+    const prevResult = prev.rows[0].check_result as CheckResponse | null;
+    if (prevResult?.violations) {
+      const prevIds = new Set(prevResult.violations.map((v: { id: string }) => v.id));
+      const currIds = new Set(checkResult.violations.map(v => v.id));
+      newViolations = checkResult.violations.filter(v => !prevIds.has(v.id)).length;
+      fixedViolations = prevResult.violations.filter((v: { id: string }) => !currIds.has(v.id)).length;
+      recurringViolations = checkResult.violations.filter(v => prevIds.has(v.id)).length;
+    }
+  } else {
+    newViolations = checkResult.violations.length;
+  }
+
+  const score = checkResult.complianceScore ?? 100;
+
+  await query(
+    `INSERT INTO check_history (id, user_id, domain, violations, warnings, passed, total_max_fine, compliance_score, check_result, new_violations, fixed_violations, recurring_violations)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+    [id, userId, domain, checkResult.stats.violations, checkResult.stats.warnings, checkResult.stats.passed,
+     checkResult.totalMaxFine, score, JSON.stringify(checkResult), newViolations, fixedViolations, recurringViolations],
+  );
+
+  return { id, domain, checkedAt: new Date().toISOString(), violations: checkResult.stats.violations,
+    warnings: checkResult.stats.warnings, passed: checkResult.stats.passed, totalMaxFine: checkResult.totalMaxFine,
+    complianceScore: score, newViolations, fixedViolations, recurringViolations };
+}
+
+/** Get check history for a domain */
+export async function getCheckHistory(userId: string, domain: string, limit = 12): Promise<CheckHistoryEntry[]> {
+  const result = await query<Record<string, unknown>>(
+    `SELECT id, domain, checked_at, violations, warnings, passed, total_max_fine, compliance_score,
+            new_violations, fixed_violations, recurring_violations
+     FROM check_history WHERE user_id = $1 AND domain = $2
+     ORDER BY checked_at DESC LIMIT $3`,
+    [userId, domain, limit],
+  );
+  return result.rows.map(row => ({
+    id: row.id as string, domain: row.domain as string,
+    checkedAt: (row.checked_at as Date | string).toString(),
+    violations: (row.violations as number) || 0, warnings: (row.warnings as number) || 0,
+    passed: (row.passed as number) || 0, totalMaxFine: (row.total_max_fine as number) || 0,
+    complianceScore: (row.compliance_score as number) || 0,
+    newViolations: (row.new_violations as number) || 0,
+    fixedViolations: (row.fixed_violations as number) || 0,
+    recurringViolations: (row.recurring_violations as number) || 0,
+  }));
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────
 
 function mapUserSiteRow(row: Record<string, unknown>): UserSite {
