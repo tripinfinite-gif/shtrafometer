@@ -37,9 +37,9 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#39;');
 }
 
-async function sendMail(to: string, subject: string, html: string): Promise<void> {
+async function sendMail(to: string, subject: string, html: string, attachments?: nodemailer.SendMailOptions['attachments']): Promise<void> {
   const transport = getTransport();
-  await transport.sendMail({ from: FROM_EMAIL, to, subject, html });
+  await transport.sendMail({ from: FROM_EMAIL, to, subject, html, attachments });
 }
 
 // ─── Email templates ───────────────────────────────────────────────
@@ -50,8 +50,13 @@ interface ViolationSummary {
   siteUrl: string;
 }
 
-/** Email after email-gate: free recommendations */
-export async function sendEmailGateReport(to: string, data: ViolationSummary): Promise<void> {
+/** Email after email-gate: free recommendations + PDF attachment */
+export async function sendEmailGateReport(to: string, data: ViolationSummary & { pdfBuffer?: Buffer; domain?: string }): Promise<void> {
+  const attachments = data.pdfBuffer ? [{
+    filename: `report-${data.domain || 'site'}-${Date.now()}.pdf`,
+    content: data.pdfBuffer,
+    contentType: 'application/pdf' as const,
+  }] : undefined;
   await sendMail(
     to,
     `Результаты проверки сайта ${escapeHtml(data.siteUrl)}`,
@@ -72,10 +77,12 @@ export async function sendEmailGateReport(to: string, data: ViolationSummary): P
       Потенциальные штрафы: до <b>${formatMoney(data.totalMaxFine)}</b>.
     </p>
 
-    <p style="font-size:15px;line-height:1.6;margin:0 0 16px">
+    ${data.pdfBuffer ? `<p style="font-size:15px;line-height:1.6;margin:0 0 16px">
+      PDF-отчёт с подробными рекомендациями прикреплён к этому письму.
+    </p>` : `<p style="font-size:15px;line-height:1.6;margin:0 0 16px">
       Для получения полного отчёта с рекомендациями по исправлению перейдите на сайт:
       <a href="https://shtrafometer.ru" style="color:#6C5CE7">shtrafometer.ru</a>
-    </p>
+    </p>`}
 
     <p style="font-size:13px;color:#999;margin:24px 0 0;border-top:1px solid #eee;padding-top:16px">
       Штрафометр — сервис проверки сайтов на соответствие законам РФ.<br>
@@ -86,6 +93,7 @@ export async function sendEmailGateReport(to: string, data: ViolationSummary): P
 </body>
 </html>
     `.trim(),
+    attachments,
   );
 }
 

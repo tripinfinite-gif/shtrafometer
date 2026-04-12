@@ -807,6 +807,7 @@ export default function Home() {
                               violations: result.stats.violations,
                               totalMaxFine: result.totalMaxFine,
                               productType: "email-lead",
+                              checkResult: result,
                             }),
                           });
                           if (res.ok) setEmailStatus("sent");

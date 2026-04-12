@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createOrder } from '@/lib/storage';
 import { sendEmailGateReport, sendAdminNotification } from '@/lib/email';
+import { generateReport } from '@/lib/pdf-report';
+import { extractDomain } from '@/lib/storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,11 +39,26 @@ export async function POST(request: NextRequest) {
 
     // Send emails (fire-and-forget, don't block response)
     if (productType === 'email-lead' && email) {
-      sendEmailGateReport(email, {
-        total: violations || 0,
-        totalMaxFine: totalMaxFine || 0,
-        siteUrl: siteUrl || '',
-      }).catch(err => console.error('[ORDER] Email-gate send failed:', err));
+      (async () => {
+        try {
+          // Generate PDF report if checkResult is available
+          let pdfBuffer: Buffer | undefined;
+          if (checkResult) {
+            pdfBuffer = await generateReport(checkResult, { mode: 'outbound', visibleCount: 3 });
+          }
+          const domain = siteUrl ? extractDomain(siteUrl) : undefined;
+          await sendEmailGateReport(email, {
+            total: violations || 0,
+            totalMaxFine: totalMaxFine || 0,
+            siteUrl: siteUrl || '',
+            pdfBuffer,
+            domain,
+          });
+          console.log(`[ORDER] Email-gate + PDF sent to ${email}`);
+        } catch (err) {
+          console.error('[ORDER] Email-gate send failed:', err);
+        }
+      })();
     }
 
     // Notify admin about new leads/orders
