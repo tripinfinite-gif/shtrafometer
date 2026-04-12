@@ -865,9 +865,23 @@ export default function Home() {
                 <div className="card rounded-2xl p-6 flex flex-col">
                   <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-2">Отчёт</p>
                   <h3 className="text-[18px] font-semibold text-gray-800 mb-1">PDF для руководства</h3>
-                  <p className="text-[12px] text-gray-500 leading-relaxed mb-4 flex-1">
+                  <p className="text-[12px] text-gray-500 leading-relaxed mb-3 flex-1">
                     Все нарушения, суммы штрафов, инструкции по исправлению. Готовый документ для передачи IT-отделу или подрядчику.
                   </p>
+                  <div className="space-y-1.5 mb-4">
+                    <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Пошаговые инструкции по каждому нарушению
+                    </div>
+                    <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Ссылки на статьи законов и суммы штрафов
+                    </div>
+                    <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Доставка на e-mail за 10 минут
+                    </div>
+                  </div>
                   <p className="text-[28px] font-semibold text-gray-800 mb-1">
                     1 990 <span className="text-[16px] text-gray-400">&#8381;</span>
                   </p>
@@ -890,15 +904,28 @@ export default function Home() {
                   </span>
                   <p className="text-[11px] text-primary uppercase tracking-widest mb-2">Автоисправление</p>
                   <h3 className="text-[18px] font-semibold text-gray-800 mb-1">Исправим за вас</h3>
-                  <p className="text-[12px] text-gray-500 leading-relaxed mb-4 flex-1">
+                  <p className="text-[12px] text-gray-500 leading-relaxed mb-3 flex-1">
                     Автоматическое устранение всех {result.stats.violations}{" "}
                     {pluralize(result.stats.violations, "нарушения", "нарушений", "нарушений")} через SSH/FTP.
-                    Бэкап, отчёт, повторная проверка.
                   </p>
+                  <div className="space-y-1.5 mb-4">
+                    <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Бэкап данных перед изменениями
+                    </div>
+                    <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Повторная проверка через 3 дня
+                    </div>
+                    <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Отчёт о выполненных работах на e-mail
+                    </div>
+                  </div>
                   <p className="text-[28px] font-semibold text-gray-800 mb-1">
                     9 990 <span className="text-[16px] text-gray-400">&#8381;</span>
                   </p>
-                  <p className="text-[11px] text-gray-400 mb-4">Все нарушения, 3 дня</p>
+                  <p className="text-[11px] text-gray-400 mb-4">Все нарушения, до 3 дней</p>
                   <button
                     onClick={() => {
                       setSelectedProduct("autofix-std");
@@ -914,10 +941,23 @@ export default function Home() {
                 <div className="card rounded-2xl p-6 flex flex-col">
                   <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-2">Мониторинг</p>
                   <h3 className="text-[18px] font-semibold text-gray-800 mb-1">Защита от штрафов</h3>
-                  <p className="text-[12px] text-gray-500 leading-relaxed mb-4 flex-1">
-                    Автоматическая проверка по расписанию. Уведомления о новых нарушениях.
-                    Отслеживание изменений в законодательстве.
+                  <p className="text-[12px] text-gray-500 leading-relaxed mb-3 flex-1">
+                    Автоматическая проверка по расписанию. Уведомления о новых нарушениях и изменениях в законодательстве.
                   </p>
+                  <div className="space-y-1.5 mb-4">
+                    <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Ежемесячный отчёт на e-mail
+                    </div>
+                    <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Мгновенные уведомления о нарушениях
+                    </div>
+                    <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Активация в течение 24 часов
+                    </div>
+                  </div>
                   <p className="text-[28px] font-semibold text-gray-800 mb-1">
                     490 <span className="text-[16px] text-gray-400">&#8381;/мес</span>
                   </p>
@@ -980,11 +1020,14 @@ export default function Home() {
                         className="mt-1 w-4 h-4 rounded border-gray-300 bg-transparent text-primary focus:ring-primary cursor-pointer accent-[#7B68EE]"
                       />
                       <span className="text-[12px] text-gray-500 leading-relaxed">
-                        Даю согласие на{" "}
+                        Принимаю условия{" "}
+                        <a href="/offer" target="_blank" className="text-primary hover:underline">
+                          публичной оферты
+                        </a>{" "}
+                        и даю согласие на{" "}
                         <a href="/privacy" target="_blank" className="text-primary hover:underline">
                           обработку персональных данных
-                        </a>{" "}
-                        в соответствии с Федеральным законом N 152-ФЗ
+                        </a>
                       </span>
                     </label>
 
@@ -993,7 +1036,7 @@ export default function Home() {
                         if (!orderForm.name.trim() || !orderForm.phone.trim() || !orderConsent) return;
                         setOrderStatus("sending");
                         try {
-                          const res = await fetch("/api/order", {
+                          const res = await fetch("/api/payment", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
@@ -1004,8 +1047,10 @@ export default function Home() {
                               productType: selectedProduct,
                             }),
                           });
-                          if (res.ok) {
-                            setOrderStatus("sent");
+                          const data = await res.json();
+                          if (res.ok && data.paymentUrl) {
+                            // Redirect to YooKassa payment page
+                            window.location.href = data.paymentUrl;
                           } else {
                             setOrderStatus("error");
                           }
@@ -1013,16 +1058,16 @@ export default function Home() {
                           setOrderStatus("error");
                         }
                       }}
-                      disabled={!orderForm.name.trim() || !orderForm.phone.trim() || !orderConsent || orderStatus === "sending"}
+                      disabled={!orderForm.name.trim() || !orderForm.phone.trim() || !orderForm.email.trim() || !orderConsent || orderStatus === "sending"}
                       className="w-full px-8 py-3.5 bg-primary hover:bg-primary-hover disabled:bg-gray-300 disabled:opacity-50 rounded-xl text-[14px] font-medium text-white transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
                     >
                       {orderStatus === "sending" ? (
                         <span className="flex items-center justify-center gap-2.5">
                           <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Отправляю
+                          Переход к оплате...
                         </span>
                       ) : (
-                        "Отправить заявку"
+                        "Оплатить и начать"
                       )}
                     </button>
 
@@ -1034,6 +1079,39 @@ export default function Home() {
                   </div>
                 </div>
               )}
+
+              {/* ────── Trust signals ────── */}
+              <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="card rounded-2xl p-5 text-center">
+                  <div className="w-10 h-10 rounded-full bg-green/10 flex items-center justify-center mx-auto mb-3">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path d="M10 2L3 5.5V9.5C3 14 6 17.5 10 19C14 17.5 17 14 17 9.5V5.5L10 2Z" stroke="#22C55E" strokeWidth="1.5" strokeLinejoin="round" />
+                      <path d="M7 10.5L9 12.5L13 8" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <p className="text-[14px] font-semibold text-gray-800 mb-1">Безопасная оплата</p>
+                  <p className="text-[12px] text-gray-500">Защита PCI DSS через ЮKassa. Данные карт не хранятся на наших серверах.</p>
+                </div>
+                <div className="card rounded-2xl p-5 text-center">
+                  <div className="w-10 h-10 rounded-full bg-[#6C5CE7]/10 flex items-center justify-center mx-auto mb-3">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path d="M10 18C14.4 18 18 14.4 18 10S14.4 2 10 2 2 5.6 2 10s3.6 8 8 8z" stroke="#6C5CE7" strokeWidth="1.5" />
+                      <path d="M7 10.5L9 12.5L13 7.5" stroke="#6C5CE7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <p className="text-[14px] font-semibold text-gray-800 mb-1">Гарантия возврата</p>
+                  <p className="text-[12px] text-gray-500">Если результат не устроит — вернём деньги в течение 24 часов.</p>
+                </div>
+                <div className="card rounded-2xl p-5 text-center">
+                  <div className="w-10 h-10 rounded-full bg-[#F59E0B]/10 flex items-center justify-center mx-auto mb-3">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                      <path d="M10 2L12.5 7.5L18 8L14 12L15 18L10 15L5 18L6 12L2 8L7.5 7.5L10 2Z" stroke="#F59E0B" strokeWidth="1.5" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <p className="text-[14px] font-semibold text-gray-800 mb-1">2 500+ проверок</p>
+                  <p className="text-[12px] text-gray-500">Нам доверяют владельцы сайтов и агентства по всей России.</p>
+                </div>
+              </div>
 
               {/* Success */}
               {orderStatus === "sent" && (
@@ -1052,6 +1130,53 @@ export default function Home() {
             </section>
           )}
         </div>
+      )}
+
+      {/* ────── FAQ ────── */}
+      {appState === "success" && result && result.violations.length > 0 && (
+        <section className="max-w-[680px] mx-auto px-6 pb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-[24px] sm:text-[28px] font-semibold tracking-tight text-gray-800 mb-2">
+              Частые вопросы
+            </h2>
+          </div>
+          <div className="space-y-3">
+            {[
+              {
+                q: "Как я получу отчёт?",
+                a: "PDF-отчёт отправляется на ваш e-mail автоматически в течение 10 минут после оплаты. Также вы получите подтверждение заказа на почту.",
+              },
+              {
+                q: "Что входит в автоисправление?",
+                a: "Мы подключаемся к вашему серверу через SSH/FTP, создаём резервную копию, устраняем все выявленные нарушения, затем проводим повторную проверку через 3 дня. Вы получите подробный отчёт о выполненных работах.",
+              },
+              {
+                q: "Могу ли я вернуть деньги?",
+                a: "Да. Для PDF-отчёта — возврат в течение 24 часов. Для автоисправления — возврат до начала работ, или пропорционально невыполненному объёму. Подробности в публичной оферте.",
+              },
+              {
+                q: "Какие способы оплаты поддерживаются?",
+                a: "Банковские карты (Visa, MasterCard, МИР), СБП и ЮMoney. Оплата проходит через защищённый сервис ЮKassa — данные карт не хранятся на наших серверах.",
+              },
+              {
+                q: "Насколько точна проверка?",
+                a: "Сервис проверяет сайт по 35+ критериям на соответствие 8 федеральным законам РФ. Проверка автоматическая и не заменяет юридическую консультацию, но выявляет все основные нарушения, за которые назначаются штрафы.",
+              },
+            ].map((item, i) => (
+              <details key={i} className="card rounded-2xl group">
+                <summary className="px-6 py-4 cursor-pointer flex items-center justify-between text-[15px] font-medium text-gray-800 list-none [&::-webkit-details-marker]:hidden">
+                  {item.q}
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0 text-gray-400 transition-transform group-open:rotate-180">
+                    <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </summary>
+                <div className="px-6 pb-4 text-[14px] text-gray-500 leading-relaxed">
+                  {item.a}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
       )}
 
       {/* Cookie Banner */}

@@ -6,6 +6,15 @@ export const metadata: Metadata = {
   title: "Штрафометр — Проверка сайта на штрафы по законам РФ",
   description:
     "Бесплатный анализ сайта по 8 законам Российской Федерации. 35+ автоматических проверок, расчёт штрафов, рекомендации по исправлению. Реальные кейсы штрафов и разборы нарушений.",
+  metadataBase: new URL("https://shtrafometer.ru"),
+  openGraph: {
+    title: "Штрафометр — Проверка сайта на штрафы по законам РФ",
+    description: "Бесплатный анализ сайта по 8 законам РФ. 35+ проверок, расчёт штрафов, рекомендации.",
+    url: "https://shtrafometer.ru",
+    siteName: "Штрафометр",
+    locale: "ru_RU",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -105,11 +114,14 @@ export default function RootLayout({
             </div>
             <div className="border-t border-gray-200 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex flex-wrap gap-4 text-[12px]">
+                <Link href="/offer" className="text-gray-500 hover:text-gray-800 transition-colors">
+                  Публичная оферта
+                </Link>
                 <Link href="/privacy" className="text-gray-500 hover:text-gray-800 transition-colors">
                   Политика конфиденциальности
                 </Link>
-                <Link href="/privacy" className="text-gray-500 hover:text-gray-800 transition-colors">
-                  Согласие на обработку ПДн
+                <Link href="/requisites" className="text-gray-500 hover:text-gray-800 transition-colors">
+                  Реквизиты
                 </Link>
                 <Link href="/blog" className="text-gray-500 hover:text-gray-800 transition-colors">
                   Блог
