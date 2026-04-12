@@ -15,12 +15,9 @@ export async function sendSms(phone: string, message: string): Promise<SmsResult
   const apiKey = process.env.SMS_RU_API_KEY;
 
   if (!apiKey) {
-    // In development without SMS_RU_API_KEY, log to console instead
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[SMS DEV] To: ${phone}, Message: ${message}`);
-      return { success: true };
-    }
-    throw new Error('SMS_RU_API_KEY not configured');
+    // Without SMS_RU_API_KEY, log code to console (check Coolify logs)
+    console.log(`[SMS] API key not configured. To: ${phone}, Message: ${message}`);
+    return { success: true };
   }
 
   const params = new URLSearchParams({
