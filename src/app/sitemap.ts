@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { posts } from '@/content/blog'
 
-const BASE_URL = 'https://shtrafometer.vercel.app'
+const BASE_URL = 'https://shtrafometer.ru'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticPages: MetadataRoute.Sitemap = [

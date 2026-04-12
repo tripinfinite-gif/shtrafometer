@@ -22,11 +22,11 @@ export interface ReportOptions {
 
 const DEFAULT_VISIBLE_COUNT = 3;
 const BRAND_NAME = 'Штрафометр';
-const BRAND_URL = 'https://shtrafometer.vercel.app';
-const LEGAL_NAME = 'ООО «Инфологистик 24»';
-const LEGAL_INN = 'ИНН 9701049890';
-const LEGAL_OGRN = 'ОГРН 1167746879486';
-const DIRECTOR_NAME = 'А.В. Смирнов';
+const BRAND_URL = 'https://shtrafometer.ru';
+const LEGAL_NAME = 'ООО «Инворк»';
+const LEGAL_INN = 'ИНН 7806618194';
+const LEGAL_OGRN = 'ОГРН 1247800025032';
+const DIRECTOR_NAME = 'Н.Н. Вельковская';
 
 // ─── Colors (matching site theme) ──────────────────────────────────
 

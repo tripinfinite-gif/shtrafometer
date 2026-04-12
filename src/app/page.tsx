@@ -1073,7 +1073,7 @@ export default function Home() {
 
                     {orderStatus === "error" && (
                       <p className="text-[13px] text-red text-center">
-                        Не удалось отправить. Позвоните нам: 8 (499) 110-55-49
+                        Не удалось отправить. Позвоните нам: +7 (985) 131-33-23
                       </p>
                     )}
                   </div>

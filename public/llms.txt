@@ -117,7 +117,7 @@ Content-Type: application/json
 
 ## Ссылки
 
-- Сайт: https://shtrafometer.vercel.app
-- Блог: https://shtrafometer.vercel.app/blog
-- Проверить сайт: https://shtrafometer.vercel.app (ввести URL в форму)
-- Политика конфиденциальности: https://shtrafometer.vercel.app/privacy
+- Сайт: https://shtrafometer.ru
+- Блог: https://shtrafometer.ru/blog
+- Проверить сайт: https://shtrafometer.ru (ввести URL в форму)
+- Политика конфиденциальности: https://shtrafometer.ru/privacy

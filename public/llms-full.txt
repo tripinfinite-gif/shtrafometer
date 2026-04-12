@@ -12,9 +12,9 @@
 
 Технологический стек: Next.js 16 (App Router), TypeScript, Tailwind CSS 4, Cheerio (HTML-парсинг), PostgreSQL (Vercel Postgres / Neon).
 
-Сайт: https://shtrafometer.vercel.app
-Блог: https://shtrafometer.vercel.app/blog
-Политика конфиденциальности: https://shtrafometer.vercel.app/privacy
+Сайт: https://shtrafometer.ru
+Блог: https://shtrafometer.ru/blog
+Политика конфиденциальности: https://shtrafometer.ru/privacy
 
 ---
 
@@ -721,8 +721,8 @@ Electronic Resource Identifier — уникальный идентификато
 
 ## Ссылки
 
-- Сайт: https://shtrafometer.vercel.app
-- Блог: https://shtrafometer.vercel.app/blog
-- Проверить сайт: https://shtrafometer.vercel.app (ввести URL в форму)
-- Политика конфиденциальности: https://shtrafometer.vercel.app/privacy
-- API: POST https://shtrafometer.vercel.app/api/check
+- Сайт: https://shtrafometer.ru
+- Блог: https://shtrafometer.ru/blog
+- Проверить сайт: https://shtrafometer.ru (ввести URL в форму)
+- Политика конфиденциальности: https://shtrafometer.ru/privacy
+- API: POST https://shtrafometer.ru/api/check

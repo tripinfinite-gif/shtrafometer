@@ -17,13 +17,13 @@ export async function checkSecurity(finalUrl: string, $?: CheerioAPI, html?: str
       id: 'sec-01',
       module: MODULE,
       law: LAW,
-      article: 'ст. 13.11 ч.6 КоАП',
+      article: 'ст. 13.11 ч.1 КоАП',
       severity: 'critical',
       title: 'Сайт не использует HTTPS',
       description:
         'Передача данных осуществляется по незащищённому протоколу HTTP. ' +
-        'Оператор обязан обеспечить безопасность персональных данных при их передаче по сети.',
-      minFine: 15000,
+        'Оператор обязан обеспечить безопасность персональных данных при их передаче по сети (ст. 19 152-ФЗ).',
+      minFine: 150000,
       maxFine: 300000,
       details: [
         `Итоговый URL: ${finalUrl}`,
@@ -52,7 +52,7 @@ export async function checkSecurity(finalUrl: string, $?: CheerioAPI, html?: str
         id: 'sec-02',
         module: MODULE,
         law: '149-ФЗ',
-        article: 'ст. 13.41.2 КоАП',
+        article: 'ст. 14.3 ч.18 КоАП',
         severity: 'high',
         title: 'Обнаружена реклама VPN для обхода блокировок',
         description:
@@ -127,13 +127,13 @@ export async function checkSecurity(finalUrl: string, $?: CheerioAPI, html?: str
           id: 'sec-04',
           module: MODULE,
           law: LAW,
-          article: 'ст. 13.11 ч.6 КоАП',
+          article: 'ст. 13.11 ч.1 КоАП',
           severity: 'medium',
           title: 'Отсутствует заголовок Strict-Transport-Security (HSTS)',
           description:
             'Сервер не отправляет заголовок HSTS, что позволяет атаки типа SSL stripping. ' +
             'Без HSTS браузер может установить незащищённое HTTP-соединение.',
-          minFine: 15000,
+          minFine: 150000,
           maxFine: 300000,
           details: ['Заголовок Strict-Transport-Security не обнаружен в ответе сервера'],
           recommendation:
@@ -157,8 +157,8 @@ export async function checkSecurity(finalUrl: string, $?: CheerioAPI, html?: str
             'Сервер не отправляет заголовок X-Content-Type-Options: nosniff. ' +
             'Это может позволить браузеру интерпретировать файлы с неверным MIME-типом.',
           law: LAW,
-          article: 'ст. 13.11 ч.6 КоАП',
-          potentialFine: '15 000 — 300 000 руб.',
+          article: 'ст. 13.11 ч.1 КоАП',
+          potentialFine: '150 000 — 300 000 руб.',
           recommendation: 'Добавьте заголовок X-Content-Type-Options: nosniff в настройках веб-сервера.',
         });
       } else {
@@ -174,8 +174,8 @@ export async function checkSecurity(finalUrl: string, $?: CheerioAPI, html?: str
           description:
             'Сервер не отправляет заголовок X-Frame-Options. Сайт может быть встроен в iframe на стороннем ресурсе (clickjacking).',
           law: LAW,
-          article: 'ст. 13.11 ч.6 КоАП',
-          potentialFine: '15 000 — 300 000 руб.',
+          article: 'ст. 13.11 ч.1 КоАП',
+          potentialFine: '150 000 — 300 000 руб.',
           recommendation: 'Добавьте заголовок X-Frame-Options: SAMEORIGIN в настройках веб-сервера.',
         });
       } else {
@@ -192,8 +192,8 @@ export async function checkSecurity(finalUrl: string, $?: CheerioAPI, html?: str
             'Сервер не отправляет заголовок Content-Security-Policy (CSP). ' +
             'CSP помогает предотвратить XSS-атаки и другие инъекции контента.',
           law: LAW,
-          article: 'ст. 13.11 ч.6 КоАП',
-          potentialFine: '15 000 — 300 000 руб.',
+          article: 'ст. 13.11 ч.1 КоАП',
+          potentialFine: '150 000 — 300 000 руб.',
           recommendation: 'Настройте Content-Security-Policy для ограничения источников загрузки скриптов, стилей и других ресурсов.',
         });
       } else {
@@ -209,8 +209,8 @@ export async function checkSecurity(finalUrl: string, $?: CheerioAPI, html?: str
           description:
             'Сервер не отправляет заголовок Referrer-Policy. Без него браузер может передавать полный URL страницы при переходах на сторонние сайты.',
           law: LAW,
-          article: 'ст. 13.11 ч.6 КоАП',
-          potentialFine: '15 000 — 300 000 руб.',
+          article: 'ст. 13.11 ч.1 КоАП',
+          potentialFine: '150 000 — 300 000 руб.',
           recommendation: 'Добавьте заголовок Referrer-Policy: strict-origin-when-cross-origin в настройках веб-сервера.',
         });
       } else {
@@ -226,8 +226,8 @@ export async function checkSecurity(finalUrl: string, $?: CheerioAPI, html?: str
           description:
             'Сервер не отправляет заголовок Permissions-Policy. Без него сторонние скрипты могут получить доступ к камере, микрофону и геолокации.',
           law: LAW,
-          article: 'ст. 13.11 ч.6 КоАП',
-          potentialFine: '15 000 — 300 000 руб.',
+          article: 'ст. 13.11 ч.1 КоАП',
+          potentialFine: '150 000 — 300 000 руб.',
           recommendation: 'Настройте заголовок Permissions-Policy для ограничения доступа к API браузера (камера, микрофон, геолокация).',
         });
       } else {
@@ -274,8 +274,8 @@ export async function checkSecurity(finalUrl: string, $?: CheerioAPI, html?: str
             'На сайте обнаружены служебные страницы, доступные без авторизации. ' +
             'Это может привести к утечке конфиденциальных данных или несанкционированному доступу.',
           law: LAW,
-          article: 'ст. 13.11 ч.6 КоАП',
-          potentialFine: '15 000 — 300 000 руб.',
+          article: 'ст. 13.11 ч.1 КоАП',
+          potentialFine: '150 000 — 300 000 руб.',
           recommendation:
             'Закройте доступ к служебным страницам: настройте авторизацию или ограничьте доступ по IP-адресу.',
         });

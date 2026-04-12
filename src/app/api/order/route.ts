@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createOrder } from '@/lib/storage';
+import { sendEmailGateReport, sendAdminNotification } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,6 +34,29 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(`[ORDER] ${productType || 'fix'}: ${order.email || order.name}, сайт: ${order.siteUrl}`);
+
+    // Send emails (fire-and-forget, don't block response)
+    if (productType === 'email-lead' && email) {
+      sendEmailGateReport(email, {
+        total: violations || 0,
+        totalMaxFine: totalMaxFine || 0,
+        siteUrl: siteUrl || '',
+      }).catch(err => console.error('[ORDER] Email-gate send failed:', err));
+    }
+
+    // Notify admin about new leads/orders
+    if (email || phone) {
+      sendAdminNotification({
+        orderId: order.id,
+        name: name || '',
+        email: email || '',
+        phone: phone || '',
+        productType: productType || 'fix',
+        siteUrl: siteUrl || '',
+        violations: violations || 0,
+        totalMaxFine: totalMaxFine || 0,
+      }).catch(err => console.error('[ORDER] Admin notification failed:', err));
+    }
 
     return NextResponse.json({ success: true, orderId: order.id });
   } catch {

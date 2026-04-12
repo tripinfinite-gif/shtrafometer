@@ -96,7 +96,7 @@ export async function sendEmailGateReport(to: string, data: ViolationSummary): P
 
     <div style="text-align:center;padding:24px 0">
       <p style="font-size:11px;color:#adb5bd;margin:0">
-        ООО «Инфологистик 24» | ИНН 9701049890 | info@shtrafometer.ru
+        ООО «Инворк» | ИНН 7806618194 | info@shtrafometer.ru
       </p>
       <p style="font-size:11px;color:#adb5bd;margin:4px 0 0">
         Результаты носят информационный характер и не являются юридической консультацией.
@@ -174,13 +174,13 @@ export async function sendOrderConfirmation(to: string, data: {
 
       <p style="font-size:14px;color:#495057;line-height:1.6;margin:0 0 24px">
         Мы свяжемся с вами в ближайшее время для уточнения деталей и начала работы.
-        Если у вас есть вопросы — звоните: <a href="tel:+74991105549" style="color:#6C5CE7;text-decoration:none">8 (499) 110-55-49</a>
+        Если у вас есть вопросы — звоните: <a href="tel:+79851313323" style="color:#6C5CE7;text-decoration:none">+7 (985) 131-33-23</a>
       </p>
     </div>
 
     <div style="text-align:center;padding:24px 0">
       <p style="font-size:11px;color:#adb5bd;margin:0">
-        ООО «Инфологистик 24» | ИНН 9701049890 | info@shtrafometer.ru
+        ООО «Инворк» | ИНН 7806618194 | info@shtrafometer.ru
       </p>
     </div>
   </div>

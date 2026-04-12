@@ -7,10 +7,10 @@ export const FINES_DB: FineRecord[] = [
     article: 'ст. 13.12 КоАП',
     law: 'КоАП РФ',
     description: 'Использование несертифицированных средств защиты информации',
-    citizens: { min: 500, max: 1000 },
-    officials: { min: 1000, max: 2000 },
+    citizens: { min: 5000, max: 10000 },
+    officials: { min: 10000, max: 50000 },
     ip: null,
-    legal: { min: 10000, max: 20000 },
+    legal: { min: 50000, max: 100000 },
   },
   // 2. Copyright violation (admin)
   {
@@ -73,10 +73,10 @@ export const FINES_DB: FineRecord[] = [
     article: 'ст. 13.11 ч.1 КоАП',
     law: '152-ФЗ',
     description: 'Неуведомление Роскомнадзора об обработке персональных данных',
-    citizens: { min: 5000, max: 10000 },
-    officials: { min: 30000, max: 50000 },
+    citizens: { min: 10000, max: 15000 },
+    officials: { min: 50000, max: 100000 },
     ip: null,
-    legal: { min: 100000, max: 300000 },
+    legal: { min: 150000, max: 300000 },
   },
   // 8. Product marking Chestniy ZNAK
   {
@@ -92,13 +92,13 @@ export const FINES_DB: FineRecord[] = [
   // 9. VPN advertising
   {
     id: 'fine-09',
-    article: 'ст. 13.41.2 КоАП',
+    article: 'ст. 14.3 ч.18 КоАП',
     law: '149-ФЗ',
     description: 'Реклама VPN-сервисов и средств обхода блокировок',
-    citizens: { min: 0, max: 80000 },
-    officials: { min: 0, max: 150000 },
+    citizens: { min: 50000, max: 80000 },
+    officials: { min: 80000, max: 150000 },
     ip: null,
-    legal: { min: 0, max: 500000 },
+    legal: { min: 200000, max: 500000 },
   },
   // 10. No privacy policy
   {
@@ -106,10 +106,10 @@ export const FINES_DB: FineRecord[] = [
     article: 'ст. 13.11 ч.3 КоАП',
     law: '152-ФЗ',
     description: 'Отсутствие политики конфиденциальности / обработки персональных данных',
-    citizens: { min: 10000, max: 15000 },
-    officials: { min: 50000, max: 100000 },
-    ip: null,
-    legal: { min: 150000, max: 300000 },
+    citizens: { min: 1500, max: 3000 },
+    officials: { min: 6000, max: 12000 },
+    ip: { min: 10000, max: 20000 },
+    legal: { min: 30000, max: 60000 },
   },
   // 11. Ad marking violation
   {
@@ -128,8 +128,8 @@ export const FINES_DB: FineRecord[] = [
     article: 'ст. 13.11 ч.2 КоАП',
     law: '152-ФЗ',
     description: 'Обработка персональных данных без согласия субъекта',
-    citizens: { min: 15000, max: 30000 },
-    officials: { min: 100000, max: 200000 },
+    citizens: { min: 10000, max: 15000 },
+    officials: { min: 100000, max: 300000 },
     ip: null,
     legal: { min: 300000, max: 700000 },
   },
@@ -205,22 +205,22 @@ export const FINES_DB: FineRecord[] = [
   // 19. PD leak 1-10K subjects
   {
     id: 'fine-19',
-    article: 'ст. 13.11 КоАП',
+    article: 'ст. 13.11 ч.12 КоАП',
     law: '152-ФЗ',
     description: 'Утечка персональных данных от 1 000 до 10 000 субъектов',
-    citizens: { min: 200000, max: 300000 },
-    officials: { min: 800000, max: 1000000 },
+    citizens: { min: 100000, max: 200000 },
+    officials: { min: 200000, max: 400000 },
     ip: null,
     legal: { min: 3000000, max: 5000000 },
   },
   // 20. PD leak 10-100K subjects
   {
     id: 'fine-20',
-    article: 'ст. 13.11 КоАП',
+    article: 'ст. 13.11 ч.13 КоАП',
     law: '152-ФЗ',
     description: 'Утечка персональных данных от 10 000 до 100 000 субъектов',
-    citizens: { min: 300000, max: 400000 },
-    officials: { min: 1000000, max: 2000000 },
+    citizens: { min: 200000, max: 300000 },
+    officials: { min: 300000, max: 500000 },
     ip: null,
     legal: { min: 5000000, max: 10000000 },
   },
@@ -272,13 +272,13 @@ export const FINES_DB: FineRecord[] = [
   // 25. PD leak 100K+ or biometrics
   {
     id: 'fine-25',
-    article: 'ст. 13.11 КоАП',
+    article: 'ст. 13.11 ч.14 КоАП',
     law: '152-ФЗ',
-    description: 'Утечка персональных данных более 100 000 субъектов или биометрических данных',
-    citizens: { min: 400000, max: 600000 },
-    officials: { min: 2000000, max: 4000000 },
+    description: 'Утечка персональных данных более 100 000 субъектов',
+    citizens: { min: 300000, max: 400000 },
+    officials: { min: 400000, max: 600000 },
     ip: null,
-    legal: { min: 15000000, max: 20000000 },
+    legal: { min: 10000000, max: 15000000 },
   },
   // 26. Data localization — REPEAT
   {

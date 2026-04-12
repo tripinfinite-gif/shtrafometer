@@ -2,8 +2,8 @@
   "schema_version": "v1",
   "name": "shtrafometer",
   "description": "Проверка сайтов на соответствие законодательству РФ. Анализ по 8 законам: 152-ФЗ, 38-ФЗ, 168-ФЗ, ЗоЗПП, 54-ФЗ, 436-ФЗ. Расчёт штрафов от 5 000 до 18 000 000 рублей.",
-  "url": "https://shtrafometer.vercel.app",
-  "logo_url": "https://shtrafometer.vercel.app/icon.png",
+  "url": "https://shtrafometer.ru",
+  "logo_url": "https://shtrafometer.ru/icon.png",
   "contact_email": "info@shtrafometer.ru",
-  "legal_info_url": "https://shtrafometer.vercel.app/privacy"
+  "legal_info_url": "https://shtrafometer.ru/privacy"
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export const metadata = {
   title: "Реквизиты — Штрафометр",
-  description: "Реквизиты ООО «Инфологистик 24» — оператора сервиса Штрафометр. ИНН, ОГРН, адрес, контакты.",
+  description: "Реквизиты ООО «Инворк» — оператора сервиса Штрафометр. ИНН, ОГРН, адрес, контакты.",
 };
 
 export default function RequisitesPage() {
@@ -12,7 +12,7 @@ export default function RequisitesPage() {
         Реквизиты
       </h1>
       <p className="text-[13px] text-gray-400 mb-10">
-        ООО &laquo;Инфологистик 24&raquo; — оператор сервиса Штрафометр
+        ООО &laquo;Инворк&raquo; — оператор сервиса Штрафометр
       </p>
 
       <div className="space-y-8">
@@ -27,12 +27,12 @@ export default function RequisitesPage() {
             Организация
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[14px]">
-            <InfoRow label="Полное наименование" value='Общество с ограниченной ответственностью «Инфологистик 24»' />
-            <InfoRow label="Сокращённое наименование" value='ООО «Инфологистик 24»' />
-            <InfoRow label="ИНН" value="9701049890" />
-            <InfoRow label="ОГРН" value="1167746879486" />
-            <InfoRow label="КПП" value="772301001" />
-            <InfoRow label="Дата регистрации" value="25 октября 2016 г." />
+            <InfoRow label="Полное наименование" value='Общество с ограниченной ответственностью «Инворк»' />
+            <InfoRow label="Сокращённое наименование" value='ООО «Инворк»' />
+            <InfoRow label="ИНН" value="7806618194" />
+            <InfoRow label="ОГРН" value="1247800025032" />
+            <InfoRow label="КПП" value="770501001" />
+            <InfoRow label="Дата регистрации" value="12 марта 2024 г." />
             <InfoRow label="Система налогообложения" value="УСН (упрощённая)" />
           </div>
         </div>
@@ -49,11 +49,11 @@ export default function RequisitesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[14px]">
             <InfoRow
               label="Юридический адрес"
-              value="109044, г. Москва, 2-й Крутицкий пер., д. 18, стр. 1, помещ. 2/1"
+              value="115054, г. Москва, ул. Большая Пионерская, д. 20, помещ. 2/1"
             />
             <InfoRow
               label="Адрес для корреспонденции"
-              value="109044, г. Москва, 2-й Крутицкий пер., д. 18, стр. 1, помещ. 2/1"
+              value="115054, г. Москва, ул. Большая Пионерская, д. 20, помещ. 2/1"
             />
             <InfoRow
               label="Адрес для претензий"
@@ -74,14 +74,14 @@ export default function RequisitesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[14px]">
             <div>
               <p className="text-[12px] text-gray-400 mb-1">Телефон</p>
-              <a href="tel:+74991105549" className="text-gray-800 hover:text-[#6C5CE7] transition-colors font-medium">
-                8 (499) 110-55-49
+              <a href="tel:+79851313323" className="text-gray-800 hover:text-[#6C5CE7] transition-colors font-medium">
+                +7 (985) 131-33-23
               </a>
             </div>
             <div>
               <p className="text-[12px] text-gray-400 mb-1">E-mail</p>
-              <a href="mailto:info@infolog24.ru" className="text-gray-800 hover:text-[#6C5CE7] transition-colors font-medium">
-                info@infolog24.ru
+              <a href="mailto:info@shtrafometer.ru" className="text-gray-800 hover:text-[#6C5CE7] transition-colors font-medium">
+                info@shtrafometer.ru
               </a>
             </div>
             <div>

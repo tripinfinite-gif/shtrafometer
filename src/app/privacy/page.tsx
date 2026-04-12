@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export const metadata = {
   title: "Политика конфиденциальности — Штрафометр",
-  description: "Политика обработки персональных данных ООО «Инфологистик 24»",
+  description: "Политика обработки персональных данных ООО «Инворк»",
 };
 
 export default function PrivacyPage() {
@@ -34,16 +34,16 @@ export default function PrivacyPage() {
             <p>
               Настоящая Политика обработки персональных данных (далее — Политика)
               определяет порядок обработки и защиты персональных данных пользователей
-              сайта Штрафометр (shtrafometer.ru) (далее — Сайт), принадлежащего ООО &laquo;Инфологистик 24&raquo;
+              сайта Штрафометр (shtrafometer.ru) (далее — Сайт), принадлежащего ООО &laquo;Инворк&raquo;
               (далее — Оператор).
             </p>
             <p>
-              Оператор: ООО &laquo;Инфологистик 24&raquo;<br />
-              ИНН: 9701049890<br />
-              ОГРН: 1167746879486<br />
-              Адрес: 109044, г. Москва, 2-й Крутицкий пер., д. 18, стр. 1, помещ. 2/1<br />
-              E-mail: info@infolog24.ru<br />
-              Телефон: 8 (499) 110-55-49
+              Оператор: ООО &laquo;Инворк&raquo;<br />
+              ИНН: 7806618194<br />
+              ОГРН: 1247800025032<br />
+              Адрес: 115054, г. Москва, ул. Большая Пионерская, д. 20, помещ. 2/1<br />
+              E-mail: info@shtrafometer.ru<br />
+              Телефон: +7 (985) 131-33-23
             </p>
             <p>
               Настоящая Политика разработана в соответствии с Федеральным законом
@@ -122,7 +122,7 @@ export default function PrivacyPage() {
             </ul>
             <p>
               Для реализации указанных прав направьте запрос на адрес электронной почты:
-              info@infolog24.ru или по почтовому адресу Оператора.
+              info@shtrafometer.ru или по почтовому адресу Оператора.
             </p>
           </Section>
 
@@ -142,7 +142,7 @@ export default function PrivacyPage() {
           <Section title="9. Порядок отзыва согласия">
             <p>
               Пользователь вправе отозвать согласие на обработку персональных данных,
-              направив письменное заявление на адрес электронной почты info@infolog24.ru
+              направив письменное заявление на адрес электронной почты info@shtrafometer.ru
               с темой &laquo;Отзыв согласия на обработку ПДн&raquo;.
             </p>
             <p>
@@ -170,7 +170,7 @@ export default function PrivacyPage() {
       <footer className="border-t border-white/[0.04] py-6">
         <div className="max-w-[720px] mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-[11px] text-[#424245]">
-            &copy; {new Date().getFullYear()} ООО &laquo;Инфологистик 24&raquo;. Все права защищены.
+            &copy; {new Date().getFullYear()} ООО &laquo;Инворк&raquo;. Все права защищены.
           </p>
           <Link href="/" className="text-[12px] text-[#0071e3] hover:underline">
             Вернуться к проверке

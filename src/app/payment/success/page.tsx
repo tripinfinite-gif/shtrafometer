@@ -75,10 +75,10 @@ function SuccessContent() {
             Проверить ещё один сайт
           </Link>
           <a
-            href="tel:+74991105549"
+            href="tel:+79851313323"
             className="px-8 py-3 text-[14px] font-medium text-gray-500 hover:text-[#6C5CE7] transition-colors text-center"
           >
-            Позвонить: 8 (499) 110-55-49
+            Позвонить: +7 (985) 131-33-23
           </a>
         </div>
 

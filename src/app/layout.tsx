@@ -53,13 +53,13 @@ export default function RootLayout({
             {/* Right: Phone + CTA */}
             <div className="flex items-center gap-4">
               <a
-                href="tel:+74991105549"
+                href="tel:+79851313323"
                 className="text-[13px] font-medium text-gray-700 hover:text-[#6C5CE7] transition-colors hidden md:flex items-center gap-1.5"
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0">
                   <path d="M6.5 2.5C6.5 2.5 7 1 8 1s1.5 1.5 1.5 1.5M3.5 5.5s-1.5 3 0 5.5 4 3.5 4 3.5 3.5-1 4.5-2-1-2.5-1-2.5L9 8.5s-1.5 1-2 0S5.5 6 5.5 6L3.5 5.5z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                8 (499) 110-55-49
+                +7 (985) 131-33-23
               </a>
               <Link
                 href="/#check"
@@ -79,22 +79,22 @@ export default function RootLayout({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8">
               <div>
                 <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-3">Организация</p>
-                <p className="text-[13px] text-gray-800 font-medium mb-1">ООО &laquo;Инфологистик 24&raquo;</p>
+                <p className="text-[13px] text-gray-800 font-medium mb-1">ООО &laquo;Инворк&raquo;</p>
                 <p className="text-[12px] text-gray-500 leading-relaxed">
-                  ИНН 9701049890<br />
-                  ОГРН 1167746879486<br />
-                  КПП 772301001
+                  ИНН 7806618194<br />
+                  ОГРН 1247800025032<br />
+                  КПП 770501001
                 </p>
               </div>
               <div>
                 <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-3">Контакты</p>
                 <p className="text-[13px] text-gray-500 leading-relaxed">
-                  <a href="tel:+74991105549" className="text-gray-800 hover:text-[#6C5CE7] transition-colors">
-                    8 (499) 110-55-49
+                  <a href="tel:+79851313323" className="text-gray-800 hover:text-[#6C5CE7] transition-colors">
+                    +7 (985) 131-33-23
                   </a>
                   <br />
-                  <a href="mailto:info@infolog24.ru" className="text-gray-800 hover:text-[#6C5CE7] transition-colors">
-                    info@infolog24.ru
+                  <a href="mailto:info@shtrafometer.ru" className="text-gray-800 hover:text-[#6C5CE7] transition-colors">
+                    info@shtrafometer.ru
                   </a>
                   <br />
                   <span className="text-gray-400">Пн — Пт, 9:00 — 21:00</span>
@@ -103,8 +103,8 @@ export default function RootLayout({
               <div>
                 <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-3">Адрес</p>
                 <p className="text-[12px] text-gray-500 leading-relaxed">
-                  109044, г. Москва,<br />
-                  2-й Крутицкий пер., д. 18, стр. 1,<br />
+                  115054, г. Москва,<br />
+                  ул. Большая Пионерская, д. 20,<br />
                   помещ. 2/1
                 </p>
                 <p className="text-[12px] text-gray-400 mt-2">
@@ -128,7 +128,7 @@ export default function RootLayout({
                 </Link>
               </div>
               <p className="text-[11px] text-gray-400">
-                &copy; {new Date().getFullYear()} ООО &laquo;Инфологистик 24&raquo;. Все права защищены.
+                &copy; {new Date().getFullYear()} ООО &laquo;Инворк&raquo;. Все права защищены.
               </p>
             </div>
             <p className="text-[11px] text-gray-400 mt-6 leading-relaxed max-w-2xl">

@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export const metadata = {
   title: "Публичная оферта — Штрафометр",
-  description: "Договор публичной оферты на оказание услуг сервиса Штрафометр (shtrafometer.ru). ООО «Инфологистик 24».",
+  description: "Договор публичной оферты на оказание услуг сервиса Штрафометр (shtrafometer.ru). ООО «Инворк».",
 };
 
 export default function OfferPage() {
@@ -19,7 +19,7 @@ export default function OfferPage() {
         <Section title="1. Общие положения">
           <p>
             Настоящий документ является официальным предложением (публичной офертой)
-            ООО &laquo;Инфологистик 24&raquo; (далее — Исполнитель) в адрес любого
+            ООО &laquo;Инворк&raquo; (далее — Исполнитель) в адрес любого
             физического или юридического лица (далее — Заказчик) заключить договор
             на оказание услуг (далее — Договор) на условиях, изложенных ниже.
           </p>
@@ -217,8 +217,8 @@ export default function OfferPage() {
           </ul>
           <p className="mt-3">
             Для оформления возврата направьте заявление на{" "}
-            <a href="mailto:info@infolog24.ru" className="text-[#6C5CE7] hover:underline">
-              info@infolog24.ru
+            <a href="mailto:info@shtrafometer.ru" className="text-[#6C5CE7] hover:underline">
+              info@shtrafometer.ru
             </a>{" "}
             с указанием номера заказа. Срок рассмотрения заявления — до 10 рабочих дней.
             Возврат осуществляется тем же способом, которым была произведена оплата.
@@ -279,19 +279,19 @@ export default function OfferPage() {
 
         <Section title="12. Реквизиты Исполнителя">
           <div className="bg-gray-50 rounded-xl p-5 border border-gray-200 text-[14px]">
-            <p className="font-medium text-gray-800 mb-2">ООО &laquo;Инфологистик 24&raquo;</p>
-            <p>ИНН: 9701049890</p>
-            <p>ОГРН: 1167746879486</p>
-            <p>КПП: 772301001</p>
-            <p>Юридический адрес: 109044, г. Москва, 2-й Крутицкий пер., д. 18, стр. 1, помещ. 2/1</p>
+            <p className="font-medium text-gray-800 mb-2">ООО &laquo;Инворк&raquo;</p>
+            <p>ИНН: 7806618194</p>
+            <p>ОГРН: 1247800025032</p>
+            <p>КПП: 770501001</p>
+            <p>Юридический адрес: 115054, г. Москва, ул. Большая Пионерская, д. 20, помещ. 2/1</p>
             <p className="mt-2">Телефон:{" "}
-              <a href="tel:+74991105549" className="text-[#6C5CE7] hover:underline">
-                8 (499) 110-55-49
+              <a href="tel:+79851313323" className="text-[#6C5CE7] hover:underline">
+                +7 (985) 131-33-23
               </a>
             </p>
             <p>E-mail:{" "}
-              <a href="mailto:info@infolog24.ru" className="text-[#6C5CE7] hover:underline">
-                info@infolog24.ru
+              <a href="mailto:info@shtrafometer.ru" className="text-[#6C5CE7] hover:underline">
+                info@shtrafometer.ru
               </a>
             </p>
             <p>Сайт:{" "}
