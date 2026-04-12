@@ -51,6 +51,7 @@ interface CheckResponse {
     passed: number;
   };
   finesByLaw: Record<string, { min: number; max: number; count: number }>;
+  complianceScore: number;
 }
 
 type AppState = "idle" | "loading" | "success" | "error";
@@ -203,6 +204,11 @@ export default function Home() {
   const [emailGate, setEmailGate] = useState("");
   const [emailStatus, setEmailStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [selectedProduct, setSelectedProduct] = useState<string>("autofix-std");
+  const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Freemium: track which violations are shown fully (first 3)
+  const FREE_VIOLATIONS_LIMIT = 3;
+  const violationIndex = { current: 0 }; // mutable counter across renders
 
   useEffect(() => {
     if (appState !== "loading") return;
@@ -365,16 +371,41 @@ export default function Home() {
               </span>
             </div>
 
-            {/* Total fines */}
-            <div className="mb-8">
-              <p className="text-[13px] text-gray-400 uppercase tracking-widest mb-2">
-                Потенциальные штрафы
-              </p>
-              <p className="text-[40px] sm:text-[48px] font-semibold tracking-tight leading-none">
-                <span className="text-gray-800">{formatMoney(result.totalMinFine)}</span>
-                <span className="text-gray-300 mx-3">&mdash;</span>
-                <span className="text-red">{formatMoney(result.totalMaxFine)}</span>
-              </p>
+            {/* Compliance Score + Total fines */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-8 mb-8">
+              {/* Score ring */}
+              <div className="relative w-28 h-28 shrink-0 mx-auto sm:mx-0">
+                <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="#F3F4F6" strokeWidth="8" />
+                  <circle
+                    cx="60" cy="60" r="52" fill="none"
+                    stroke={result.complianceScore > 80 ? '#22C55E' : result.complianceScore > 60 ? '#EAB308' : result.complianceScore > 30 ? '#F97316' : '#EF4444'}
+                    strokeWidth="8" strokeLinecap="round"
+                    strokeDasharray={`${(result.complianceScore / 100) * 327} 327`}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-[28px] font-bold text-gray-800">{result.complianceScore}</span>
+                  <span className="text-[10px] text-gray-400">из 100</span>
+                </div>
+              </div>
+              {/* Fines */}
+              <div className="flex-1">
+                <p className="text-[13px] text-gray-400 uppercase tracking-widest mb-2">
+                  Потенциальные штрафы
+                </p>
+                <p className="text-[36px] sm:text-[44px] font-semibold tracking-tight leading-none">
+                  <span className="text-gray-800">{formatMoney(result.totalMinFine)}</span>
+                  <span className="text-gray-300 mx-3">&mdash;</span>
+                  <span className="text-red">{formatMoney(result.totalMaxFine)}</span>
+                </p>
+                <p className="text-[13px] text-gray-500 mt-2">
+                  {result.complianceScore > 80 ? 'Сайт в хорошем состоянии, есть небольшие замечания' :
+                   result.complianceScore > 60 ? 'Есть существенные нарушения, рекомендуем исправить' :
+                   result.complianceScore > 30 ? 'Много нарушений — риск штрафов при проверке' :
+                   'Критический уровень нарушений — высокий риск штрафов'}
+                </p>
+              </div>
             </div>
 
             {/* Stats row */}
@@ -473,13 +504,16 @@ export default function Home() {
             function renderViolation(v: Violation) {
               const sev = SEVERITY[v.severity];
               const isOpen = expanded.has(v.id);
+              const idx = violationIndex.current++;
+              const isLocked = idx >= FREE_VIOLATIONS_LIMIT;
+
               return (
                 <div
                   key={v.id}
-                  className={`card rounded-2xl border-l-[3px] ${sev.css} overflow-hidden transition-all duration-300`}
+                  className={`card rounded-2xl border-l-[3px] ${sev.css} overflow-hidden transition-all duration-300 ${isLocked ? 'relative' : ''}`}
                 >
                   <button
-                    onClick={() => toggle(v.id)}
+                    onClick={() => isLocked ? setShowAuthModal(true) : toggle(v.id)}
                     className="w-full text-left px-6 py-5 flex items-start gap-4 cursor-pointer"
                   >
                     <div className="flex-1 min-w-0">
@@ -495,9 +529,16 @@ export default function Home() {
                             {v.title}
                           </h3>
                         </div>
-                        <span className="text-[10px] text-gray-400 bg-gray-100 rounded px-1.5 py-0.5 font-mono shrink-0">
-                          {v.id}
-                        </span>
+                        {!isLocked && (
+                          <span className="text-[10px] text-gray-400 bg-gray-100 rounded px-1.5 py-0.5 font-mono shrink-0">
+                            {v.id}
+                          </span>
+                        )}
+                        {isLocked && (
+                          <span className="text-[10px] text-[#6C5CE7] bg-[#6C5CE7]/10 rounded px-2 py-0.5 font-medium shrink-0">
+                            Подробнее после регистрации
+                          </span>
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-3 mt-2 pl-0.5">
                         {v.maxFine > 0 ? (
@@ -516,34 +557,61 @@ export default function Home() {
                         )}
                       </div>
                     </div>
-                    <ChevronDown open={isOpen} className="text-gray-400 mt-1.5" />
+                    {!isLocked && <ChevronDown open={isOpen} className="text-gray-400 mt-1.5" />}
                   </button>
 
-                  <div className={`grid transition-all duration-300 ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
-                    <div className="overflow-hidden">
-                      <div className="px-6 pb-6 pt-2 space-y-4 border-t border-gray-100">
-                        <p className="text-[14px] text-gray-500 leading-relaxed">{v.description}</p>
-
-                        {v.details.length > 0 && (
-                          <div className="space-y-2">
-                            {v.details.map((d, i) => (
-                              <div key={i} className="flex items-start gap-2.5 text-[13px] text-gray-500">
-                                <span className="w-1 h-1 rounded-full bg-gray-300 mt-2 shrink-0" />
-                                <span className="break-all">{d}</span>
-                              </div>
-                            ))}
+                  {/* Locked: blur overlay */}
+                  {isLocked && (
+                    <div className="px-6 pb-5">
+                      <div className="relative">
+                        <div className="blur-[6px] select-none pointer-events-none opacity-50">
+                          <p className="text-[14px] text-gray-500 leading-relaxed">
+                            {v.description.slice(0, 80)}...
+                          </p>
+                          <div className="mt-2 rounded-xl bg-gray-50 border border-gray-200 px-4 py-3">
+                            <p className="text-[13px] text-gray-500">Рекомендация по исправлению...</p>
                           </div>
-                        )}
-
-                        {v.recommendation && (
-                          <div className="flex items-start gap-2.5 rounded-xl bg-primary-lighter border border-primary-light px-4 py-3">
-                            <ArrowIcon />
-                            <p className="text-[13px] text-gray-700 leading-relaxed">{v.recommendation}</p>
-                          </div>
-                        )}
+                        </div>
+                        <button
+                          onClick={() => setShowAuthModal(true)}
+                          className="absolute inset-0 flex items-center justify-center"
+                        >
+                          <span className="px-4 py-2 rounded-xl bg-[#6C5CE7] text-white text-[13px] font-medium shadow-lg hover:bg-[#5B4BD5] transition-colors">
+                            Зарегистрироваться бесплатно
+                          </span>
+                        </button>
                       </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Unlocked: full details */}
+                  {!isLocked && (
+                    <div className={`grid transition-all duration-300 ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+                      <div className="overflow-hidden">
+                        <div className="px-6 pb-6 pt-2 space-y-4 border-t border-gray-100">
+                          <p className="text-[14px] text-gray-500 leading-relaxed">{v.description}</p>
+
+                          {v.details.length > 0 && (
+                            <div className="space-y-2">
+                              {v.details.map((d, i) => (
+                                <div key={i} className="flex items-start gap-2.5 text-[13px] text-gray-500">
+                                  <span className="w-1 h-1 rounded-full bg-gray-300 mt-2 shrink-0" />
+                                  <span className="break-all">{d}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {v.recommendation && (
+                            <div className="flex items-start gap-2.5 rounded-xl bg-primary-lighter border border-primary-light px-4 py-3">
+                              <ArrowIcon />
+                              <p className="text-[13px] text-gray-700 leading-relaxed">{v.recommendation}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             }
@@ -624,6 +692,9 @@ export default function Home() {
                 </section>
               );
             }
+
+            // Reset violation counter for this render
+            violationIndex.current = 0;
 
             return (
               <>
@@ -770,79 +841,50 @@ export default function Home() {
             );
           })()}
 
-          {/* ────── Email-gate: Get detailed instructions ────── */}
-          {result.violations.length > 0 && (
+          {/* ────── CTA: Register for full report ────── */}
+          {result.violations.length > 0 && result.stats.violations > FREE_VIOLATIONS_LIMIT && (
             <section className="mt-10 mb-6 animate-fade-up animate-fade-up-delay-3">
-              {/* Email gate card */}
-              {emailStatus !== "sent" && (
-                <div className="card rounded-2xl p-8 sm:p-10 text-center">
-                  <p className="text-[11px] text-primary uppercase tracking-widest mb-3">Бесплатно</p>
-                  <h2 className="text-[24px] sm:text-[28px] font-semibold tracking-tight text-gray-800 mb-3">
-                    Получите инструкции по исправлению
-                  </h2>
-                  <p className="text-[14px] text-gray-500 max-w-md mx-auto leading-relaxed mb-6">
-                    Подробные рекомендации для каждого нарушения — бесплатно на ваш email.
-                    Также отправим PDF-отчёт для руководства.
-                  </p>
-
-                  <div className="max-w-sm mx-auto flex gap-2">
-                    <input
-                      type="email"
-                      placeholder="Ваш e-mail"
-                      value={emailGate}
-                      onChange={(e) => setEmailGate(e.target.value)}
-                      className="flex-1 bg-white border border-gray-200 rounded-xl px-4 py-3 text-[14px] text-gray-800 placeholder-gray-400 focus:border-primary transition-colors"
-                    />
-                    <button
-                      onClick={async () => {
-                        if (!emailGate.trim() || !emailGate.includes("@")) return;
-                        setEmailStatus("sending");
-                        try {
-                          const res = await fetch("/api/order", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              email: emailGate.trim(),
-                              siteUrl: result.url,
-                              violations: result.stats.violations,
-                              totalMaxFine: result.totalMaxFine,
-                              productType: "email-lead",
-                              checkResult: result,
-                            }),
-                          });
-                          if (res.ok) setEmailStatus("sent");
-                          else setEmailStatus("error");
-                        } catch { setEmailStatus("error"); }
-                      }}
-                      disabled={!emailGate.trim() || !emailGate.includes("@") || emailStatus === "sending"}
-                      className="px-6 py-3 bg-primary hover:bg-primary-hover disabled:bg-gray-300 disabled:opacity-50 rounded-xl text-[14px] font-medium text-white transition-all cursor-pointer disabled:cursor-not-allowed whitespace-nowrap"
-                    >
-                      {emailStatus === "sending" ? (
-                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
-                      ) : "Отправить"}
-                    </button>
-                  </div>
-                  {emailStatus === "error" && (
-                    <p className="text-[12px] text-red mt-2">Не удалось отправить. Попробуйте ещё раз.</p>
-                  )}
-                  <p className="text-[11px] text-gray-400 mt-3">
-                    Нажимая кнопку, вы соглашаетесь с{" "}
-                    <a href="/privacy" className="text-primary hover:underline">политикой конфиденциальности</a>
-                  </p>
+              <div className="card rounded-2xl p-8 sm:p-10 text-center bg-gradient-to-b from-[#6C5CE7]/5 to-transparent border-[#6C5CE7]/20">
+                <div className="w-14 h-14 rounded-2xl bg-[#6C5CE7]/10 flex items-center justify-center mx-auto mb-4">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6C5CE7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 12l2 2 4-4M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                  </svg>
                 </div>
-              )}
-
-              {emailStatus === "sent" && (
-                <div className="card rounded-2xl p-8 text-center">
-                  <div className="w-14 h-14 rounded-full bg-green/10 flex items-center justify-center mx-auto mb-3">
-                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                      <path d="M7 15L11.5 19.5L21 9" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <p className="text-[18px] font-semibold text-gray-800 mb-1">Отправлено!</p>
-                  <p className="text-[14px] text-gray-500">Инструкции и PDF-отчёт отправлены на {emailGate}</p>
+                <h2 className="text-[22px] sm:text-[26px] font-semibold tracking-tight text-gray-800 mb-2">
+                  {result.stats.violations} {pluralize(result.stats.violations, 'нарушение', 'нарушения', 'нарушений')} на сумму до {formatMoney(result.totalMaxFine)}
+                </h2>
+                <p className="text-[14px] text-gray-500 max-w-lg mx-auto leading-relaxed mb-6">
+                  Зарегистрируйтесь бесплатно, чтобы увидеть подробности всех нарушений, получить план исправления и ежемесячный мониторинг
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
+                  <a
+                    href={`/auth/register?returnUrl=${encodeURIComponent('/cabinet')}&site=${encodeURIComponent(result.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0])}`}
+                    className="px-8 py-3.5 rounded-xl bg-[#6C5CE7] hover:bg-[#5B4BD5] text-white text-[15px] font-medium transition-colors"
+                  >
+                    Создать аккаунт за 15 секунд
+                  </a>
+                  <a
+                    href="/auth/login"
+                    className="text-[13px] text-gray-500 hover:text-[#6C5CE7] transition-colors"
+                  >
+                    Уже есть аккаунт? Войти
+                  </a>
                 </div>
-              )}
+                <div className="flex items-center justify-center gap-6 text-[12px] text-gray-400">
+                  <span className="flex items-center gap-1.5">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7.5L5.5 10L11 4" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Все нарушения с рекомендациями
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7.5L5.5 10L11 4" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Технический аудит
+                  </span>
+                  <span className="flex items-center gap-1.5 hidden sm:flex">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7.5L5.5 10L11 4" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Мониторинг бесплатно
+                  </span>
+                </div>
+              </div>
             </section>
           )}
 
@@ -1187,6 +1229,81 @@ export default function Home() {
             ))}
           </div>
         </section>
+      )}
+
+      {/* ────── Sticky mobile bar ────── */}
+      {appState === "success" && result && result.violations.length > FREE_VIOLATIONS_LIMIT && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-200 py-3 px-4 sm:hidden">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[14px] font-semibold text-gray-800">
+                {result.stats.violations} {pluralize(result.stats.violations, 'нарушение', 'нарушения', 'нарушений')}
+              </p>
+              <p className="text-[12px] text-gray-500">до {formatMoney(result.totalMaxFine)}</p>
+            </div>
+            <a
+              href={`/auth/register?returnUrl=${encodeURIComponent('/cabinet')}&site=${encodeURIComponent(result.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0])}`}
+              className="px-5 py-2.5 rounded-xl bg-[#6C5CE7] text-white text-[13px] font-medium"
+            >
+              Полный отчёт
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* ────── Auth Modal ────── */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowAuthModal(false)} />
+          <div className="relative bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-fade-up">
+            <button
+              onClick={() => setShowAuthModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5L15 15M15 5L5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            </button>
+
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-[#6C5CE7]/10 flex items-center justify-center mx-auto mb-3">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6C5CE7" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                  <path d="M9 12l2 2 4-4"/>
+                </svg>
+              </div>
+              <h3 className="text-[20px] font-semibold text-gray-800 mb-1">Подробности нарушений</h3>
+              <p className="text-[14px] text-gray-500">
+                Зарегистрируйтесь бесплатно, чтобы увидеть описание, рекомендации и план исправления всех нарушений
+              </p>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              {[
+                'Полный отчёт по всем нарушениям',
+                'Технический аудит (SEO, безопасность)',
+                'Ежемесячный мониторинг бесплатно',
+                'История проверок в личном кабинете',
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-2.5 text-[13px] text-gray-600">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5L6 11L12.5 4.5" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  {item}
+                </div>
+              ))}
+            </div>
+
+            <a
+              href={`/auth/register?returnUrl=${encodeURIComponent('/cabinet')}${result ? `&site=${encodeURIComponent(result.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0])}` : ''}`}
+              className="block w-full text-center px-6 py-3.5 rounded-xl bg-[#6C5CE7] hover:bg-[#5B4BD5] text-white text-[15px] font-medium transition-colors mb-3"
+            >
+              Создать аккаунт за 15 секунд
+            </a>
+            <a
+              href="/auth/login"
+              className="block w-full text-center text-[13px] text-gray-500 hover:text-[#6C5CE7] transition-colors"
+            >
+              Уже есть аккаунт? Войти
+            </a>
+          </div>
+        </div>
       )}
 
       {/* Cookie Banner */}

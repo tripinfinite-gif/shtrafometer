@@ -46,6 +46,7 @@ export interface CheckResponse {
   riskLevel: RiskLevel;
   totalMinFine: number;
   totalMaxFine: number;
+  complianceScore: number; // 0-100, higher = better
   violations: Violation[];
   warnings: Warning[];
   passed: PassedCheck[];

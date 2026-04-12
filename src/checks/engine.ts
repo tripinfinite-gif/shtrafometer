@@ -456,7 +456,13 @@ export async function analyzeUrl(inputUrl: string): Promise<CheckResponse> {
   );
   const riskLevel = determineRiskLevel(totalMaxFine, hasLocalizationViolations);
 
-  // 11. Формирование ответа
+  // 11. Compliance Score (0-100)
+  const severityPenalty: Record<string, number> = { critical: 15, high: 10, medium: 5, low: 2 };
+  const complianceScore = Math.max(0, Math.min(100,
+    100 - violations.reduce((sum, v) => sum + (severityPenalty[v.severity] || 5), 0)
+  ));
+
+  // 12. Формирование ответа
   return {
     url: finalUrl,
     checkedAt: new Date().toISOString(),
@@ -464,6 +470,7 @@ export async function analyzeUrl(inputUrl: string): Promise<CheckResponse> {
     riskLevel,
     totalMinFine,
     totalMaxFine,
+    complianceScore,
     violations,
     warnings,
     passed,
