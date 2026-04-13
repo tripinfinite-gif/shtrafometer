@@ -891,62 +891,73 @@ export default function Home() {
           {/* ────── Pricing: Paid products ────── */}
           {result.violations.length > 0 && (
             <section className="mb-8 animate-fade-up animate-fade-up-delay-3">
-              <div className="text-center mb-8">
+              <div className="text-center mb-4">
                 <p className="text-[11px] text-primary uppercase tracking-widest mb-3">
                   Устранить нарушения
                 </p>
                 <h2 className="text-[24px] sm:text-[28px] font-semibold tracking-tight text-gray-800 mb-2">
-                  Выберите подходящий вариант
+                  Исправим за вас — выберите тариф
                 </h2>
                 <p className="text-[14px] text-gray-500">
                   Потенциальные штрафы: до {formatMoney(result.totalMaxFine)} — дешевле исправить, чем платить
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Card 1: PDF Report */}
+              {/* ── Savings badge ── */}
+              {result.totalMaxFine > 9990 && (
+                <div className="flex justify-center mb-6">
+                  <span className="inline-flex items-center gap-1.5 bg-green/10 text-green text-[12px] font-medium px-4 py-1.5 rounded-full">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M4 4l3-3 3 3M4 10l3 3 3-3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    Экономия до {formatMoney(result.totalMaxFine - 4990)} по сравнению со штрафами
+                  </span>
+                </div>
+              )}
+
+              {/* ── 3 Autofix tiers ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
+                {/* Tier 1: Basic */}
                 <div className="card rounded-2xl p-6 flex flex-col">
-                  <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-2">Отчёт</p>
-                  <h3 className="text-[18px] font-semibold text-gray-800 mb-1">PDF для руководства</h3>
+                  <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-2">Базовый</p>
+                  <h3 className="text-[18px] font-semibold text-gray-800 mb-1">1 категория</h3>
                   <p className="text-[12px] text-gray-500 leading-relaxed mb-3 flex-1">
-                    Все нарушения, суммы штрафов, инструкции по исправлению. Готовый документ для передачи IT-отделу или подрядчику.
+                    Автоисправление нарушений в одной категории на выбор: ПДн, локализация или реклама.
                   </p>
                   <div className="space-y-1.5 mb-4">
                     <div className="flex items-center gap-2 text-[12px] text-gray-500">
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      Пошаговые инструкции по каждому нарушению
+                      Бэкап перед изменениями
                     </div>
                     <div className="flex items-center gap-2 text-[12px] text-gray-500">
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      Ссылки на статьи законов и суммы штрафов
+                      Отчёт о работах на e-mail
                     </div>
                     <div className="flex items-center gap-2 text-[12px] text-gray-500">
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      Доставка на e-mail за 10 минут
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 6h.01" stroke="#D1D5DB" strokeWidth="2" strokeLinecap="round"/></svg>
+                      <span className="text-gray-300">Повторная проверка</span>
                     </div>
                   </div>
                   <p className="text-[28px] font-semibold text-gray-800 mb-1">
-                    1 990 <span className="text-[16px] text-gray-400">&#8381;</span>
+                    4 990 <span className="text-[16px] text-gray-400">&#8381;</span>
                   </p>
                   <p className="text-[11px] text-gray-400 mb-4">Разовая покупка</p>
                   <button
                     onClick={() => {
-                      setSelectedProduct("report");
+                      setSelectedProduct("autofix-basic");
                       setShowOrderForm(true);
                     }}
                     className="w-full py-3 rounded-xl text-[14px] font-medium text-primary bg-primary-lighter hover:bg-primary-light border border-primary/20 transition-colors cursor-pointer"
                   >
-                    Скачать отчёт
+                    Выбрать
                   </button>
                 </div>
 
-                {/* Card 2: Auto-fix (recommended) */}
-                <div className="rounded-2xl p-6 flex flex-col relative overflow-hidden" style={{ background: "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)", border: "2px solid #6C5CE7" }}>
+                {/* Tier 2: Standard (recommended) */}
+                <div className="rounded-2xl p-6 flex flex-col relative overflow-hidden sm:scale-[1.03] sm:-my-1 sm:shadow-lg z-10" style={{ background: "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)", border: "2px solid #6C5CE7" }}>
                   <span className="absolute top-0 right-0 bg-primary text-white text-[10px] font-semibold px-3 py-1 rounded-bl-xl">
                     Популярный
                   </span>
-                  <p className="text-[11px] text-primary uppercase tracking-widest mb-2">Автоисправление</p>
-                  <h3 className="text-[18px] font-semibold text-gray-800 mb-1">Исправим за вас</h3>
+                  <p className="text-[11px] text-primary uppercase tracking-widest mb-2">Стандарт</p>
+                  <h3 className="text-[18px] font-semibold text-gray-800 mb-1">Все нарушения</h3>
                   <p className="text-[12px] text-gray-500 leading-relaxed mb-3 flex-1">
                     Автоматическое устранение всех {result.stats.violations}{" "}
                     {pluralize(result.stats.violations, "нарушения", "нарушений", "нарушений")} через SSH/FTP.
@@ -954,21 +965,21 @@ export default function Home() {
                   <div className="space-y-1.5 mb-4">
                     <div className="flex items-center gap-2 text-[12px] text-gray-500">
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      Бэкап данных перед изменениями
+                      Бэкап перед изменениями
+                    </div>
+                    <div className="flex items-center gap-2 text-[12px] text-gray-500">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      Отчёт о работах на e-mail
                     </div>
                     <div className="flex items-center gap-2 text-[12px] text-gray-500">
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                       Повторная проверка через 3 дня
                     </div>
-                    <div className="flex items-center gap-2 text-[12px] text-gray-500">
-                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      Отчёт о выполненных работах на e-mail
-                    </div>
                   </div>
                   <p className="text-[28px] font-semibold text-gray-800 mb-1">
                     9 990 <span className="text-[16px] text-gray-400">&#8381;</span>
                   </p>
-                  <p className="text-[11px] text-gray-400 mb-4">Все нарушения, до 3 дней</p>
+                  <p className="text-[11px] text-gray-400 mb-4">Все категории, до 3 дней</p>
                   <button
                     onClick={() => {
                       setSelectedProduct("autofix-std");
@@ -976,43 +987,128 @@ export default function Home() {
                     }}
                     className="w-full py-3 rounded-xl text-[14px] font-medium text-white bg-primary hover:bg-primary-hover transition-colors cursor-pointer shadow-md"
                   >
-                    Оставить заявку
+                    Выбрать
                   </button>
                 </div>
 
-                {/* Card 3: Monitoring */}
+                {/* Tier 3: Premium */}
                 <div className="card rounded-2xl p-6 flex flex-col">
-                  <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-2">Мониторинг</p>
-                  <h3 className="text-[18px] font-semibold text-gray-800 mb-1">Защита от штрафов</h3>
+                  <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-2">Премиум</p>
+                  <h3 className="text-[18px] font-semibold text-gray-800 mb-1">Всё + эксперт</h3>
                   <p className="text-[12px] text-gray-500 leading-relaxed mb-3 flex-1">
-                    Автоматическая проверка по расписанию. Уведомления о новых нарушениях и изменениях в законодательстве.
+                    Автоисправление всех нарушений + ручная проверка экспертом по интернет-праву.
                   </p>
                   <div className="space-y-1.5 mb-4">
                     <div className="flex items-center gap-2 text-[12px] text-gray-500">
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      Ежемесячный отчёт на e-mail
+                      Бэкап перед изменениями
                     </div>
                     <div className="flex items-center gap-2 text-[12px] text-gray-500">
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      Мгновенные уведомления о нарушениях
+                      Повторная проверка + отчёт
                     </div>
                     <div className="flex items-center gap-2 text-[12px] text-gray-500">
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      Активация в течение 24 часов
+                      Персональные рекомендации эксперта
                     </div>
                   </div>
                   <p className="text-[28px] font-semibold text-gray-800 mb-1">
-                    490 <span className="text-[16px] text-gray-400">&#8381;/мес</span>
+                    14 990 <span className="text-[16px] text-gray-400">&#8381;</span>
                   </p>
-                  <p className="text-[11px] text-gray-400 mb-4">Подписка, 1 сайт</p>
+                  <p className="text-[11px] text-gray-400 mb-4">Все категории + экспертиза</p>
                   <button
                     onClick={() => {
-                      setSelectedProduct("monitoring");
+                      setSelectedProduct("autofix-prem");
                       setShowOrderForm(true);
                     }}
                     className="w-full py-3 rounded-xl text-[14px] font-medium text-primary bg-primary-lighter hover:bg-primary-light border border-primary/20 transition-colors cursor-pointer"
                   >
-                    Подключить
+                    Выбрать
+                  </button>
+                </div>
+              </div>
+
+              {/* ── Feature comparison table ── */}
+              <div className="card rounded-2xl overflow-hidden mb-6">
+                <table className="w-full text-[12px]">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left p-3 pl-5 text-gray-400 font-medium">Что входит</th>
+                      <th className="p-3 text-center text-gray-400 font-medium">Базовый</th>
+                      <th className="p-3 text-center text-primary font-semibold bg-primary/5">Стандарт</th>
+                      <th className="p-3 text-center text-gray-400 font-medium">Премиум</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-gray-600">
+                    {[
+                      ["Автоисправление нарушений", "1 категория", "Все", "Все"],
+                      ["Бэкап данных", true, true, true],
+                      ["Отчёт о работах", true, true, true],
+                      ["Повторная проверка", false, true, true],
+                      ["Ручная проверка экспертом", false, false, true],
+                      ["Персональные рекомендации", false, false, true],
+                    ].map(([feature, basic, std, prem], i) => (
+                      <tr key={i} className="border-b border-gray-50 last:border-0">
+                        <td className="p-3 pl-5 text-gray-600">{feature as string}</td>
+                        {[basic, std, prem].map((val, j) => (
+                          <td key={j} className={`p-3 text-center ${j === 1 ? "bg-primary/5" : ""}`}>
+                            {val === true ? (
+                              <svg className="inline" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7.5L5.5 10L11 4" stroke="#22C55E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            ) : val === false ? (
+                              <span className="text-gray-300">&mdash;</span>
+                            ) : (
+                              <span className="text-[11px] font-medium">{val as string}</span>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* ── Additional services ── */}
+              <div className="mb-6">
+                <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-3 text-center">Дополнительно</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <button
+                    onClick={() => { setSelectedProduct("report"); setShowOrderForm(true); }}
+                    className="card rounded-xl p-4 flex items-center gap-4 text-left hover:border-primary/30 transition-colors cursor-pointer group"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M5 2h6l4 4v10a1 1 0 01-1 1H5a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="#6C5CE7" strokeWidth="1.2" strokeLinejoin="round"/><path d="M11 2v4h4M7 10h4M7 13h2" stroke="#6C5CE7" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-gray-800 group-hover:text-primary transition-colors">PDF-отчёт</p>
+                      <p className="text-[11px] text-gray-400">Все нарушения + инструкции</p>
+                    </div>
+                    <p className="text-[15px] font-semibold text-gray-800 whitespace-nowrap">1 990 &#8381;</p>
+                  </button>
+                  <button
+                    onClick={() => { setSelectedProduct("monitoring"); setShowOrderForm(true); }}
+                    className="card rounded-xl p-4 flex items-center gap-4 text-left hover:border-primary/30 transition-colors cursor-pointer group"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-green/10 flex items-center justify-center shrink-0">
+                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 16A7 7 0 109 2a7 7 0 000 14z" stroke="#22C55E" strokeWidth="1.2"/><path d="M9 5v4l2.5 2.5" stroke="#22C55E" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-gray-800 group-hover:text-primary transition-colors">Мониторинг</p>
+                      <p className="text-[11px] text-gray-400">Ежемесячная проверка + алерты</p>
+                    </div>
+                    <p className="text-[15px] font-semibold text-gray-800 whitespace-nowrap">490 &#8381;/мес</p>
+                  </button>
+                  <button
+                    onClick={() => { setSelectedProduct("consulting"); setShowOrderForm(true); }}
+                    className="card rounded-xl p-4 flex items-center gap-4 text-left hover:border-primary/30 transition-colors cursor-pointer group"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center shrink-0">
+                      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2a5 5 0 015 5c0 1.5-.7 2.8-1.7 3.7L12 14H6l-.3-3.3A5 5 0 019 2z" stroke="#F59E0B" strokeWidth="1.2" strokeLinejoin="round"/><path d="M7 14v1a2 2 0 004 0v-1" stroke="#F59E0B" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-gray-800 group-hover:text-primary transition-colors">Консалтинг</p>
+                      <p className="text-[11px] text-gray-400">Экспертный аудит + документы</p>
+                    </div>
+                    <p className="text-[15px] font-semibold text-gray-800 whitespace-nowrap">15 000 &#8381;</p>
                   </button>
                 </div>
               </div>
@@ -1032,12 +1128,16 @@ export default function Home() {
                   <h3 className="text-[17px] font-semibold text-gray-800 mb-1 text-center">
                     {selectedProduct === "report" ? "Оформление отчёта" :
                      selectedProduct === "monitoring" ? "Подключение мониторинга" :
+                     selectedProduct === "consulting" ? "Заявка на консалтинг" :
                      "Заявка на исправление"}
                   </h3>
                   <p className="text-[12px] text-gray-400 text-center mb-6">
                     {selectedProduct === "report" ? "PDF-отчёт • 1 990 ₽" :
-                     selectedProduct === "autofix-std" ? "Автоисправление • 9 990 ₽" :
+                     selectedProduct === "autofix-basic" ? "Автоисправление Базовый • 4 990 ₽" :
+                     selectedProduct === "autofix-std" ? "Автоисправление Стандарт • 9 990 ₽" :
+                     selectedProduct === "autofix-prem" ? "Автоисправление Премиум • 14 990 ₽" :
                      selectedProduct === "monitoring" ? "Мониторинг • 490 ₽/мес" :
+                     selectedProduct === "consulting" ? "Консалтинг • 15 000 ₽" :
                      ""}
                   </p>
 
