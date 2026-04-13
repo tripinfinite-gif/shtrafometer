@@ -10,7 +10,7 @@ export default function PrivacyPage() {
     <div className="min-h-screen flex flex-col">
       {/* Nav */}
       <nav className="sticky top-0 z-50 border-b border-white/[0.06]" style={{ background: "rgba(28,28,30,0.72)", backdropFilter: "blur(20px) saturate(180%)" }}>
-        <div className="max-w-[980px] mx-auto px-6 h-12 flex items-center justify-between">
+        <div className="max-w-[1120px] mx-auto px-6 h-12 flex items-center justify-between">
           <Link href="/" className="text-[13px] font-medium tracking-tight text-[#f5f5f7] hover:text-[#0071e3] transition-colors">
             Штрафометр
           </Link>

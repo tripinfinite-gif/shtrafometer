@@ -30,7 +30,7 @@ export default async function RootLayout({
       <body className="min-h-screen bg-white text-gray-800">
         {/* ────── Global Navigation ────── */}
         <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200/80">
-          <div className="max-w-[980px] mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="max-w-[1120px] mx-auto px-6 h-14 flex items-center justify-between">
             {/* Left: Logo + Nav links */}
             <div className="flex items-center gap-6">
               <Link href="/" className="flex items-center gap-2.5 group shrink-0">
@@ -93,7 +93,7 @@ export default async function RootLayout({
 
         {/* ────── Global Footer ────── */}
         <footer className="border-t border-gray-200 bg-gray-50 mt-auto">
-          <div className="max-w-[980px] mx-auto px-6 py-10">
+          <div className="max-w-[1120px] mx-auto px-6 py-10">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8">
               <div>
                 <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-3">Организация</p>

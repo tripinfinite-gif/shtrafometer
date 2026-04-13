@@ -268,7 +268,7 @@ export default function Home() {
     <div className="flex flex-col bg-white">
       {/* ────── Hero / Form ────── */}
       <div id="check" className={`${isIdle ? "min-h-[calc(100vh-56px)] flex items-center" : "pt-8 pb-6"} transition-all duration-500`}>
-        <div className="max-w-[980px] mx-auto px-6 w-full">
+        <div className="max-w-[1120px] mx-auto px-6 w-full">
           {isIdle && (
             <div className="text-center mb-16 animate-fade-up">
               <h1 className="text-[56px] sm:text-[72px] leading-[1.05] font-semibold tracking-tight text-gray-800 mb-4">
@@ -353,7 +353,7 @@ export default function Home() {
 
       {/* ────── Results ────── */}
       {appState === "success" && result && (
-        <div className="max-w-[980px] mx-auto px-6 pb-20">
+        <div className="max-w-[1120px] mx-auto px-6 pb-20">
 
           {/* Summary */}
           <div className="card rounded-2xl p-8 sm:p-10 mb-8 animate-fade-up">
