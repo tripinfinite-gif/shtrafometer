@@ -46,6 +46,12 @@ export default async function RootLayout({
                 </span>
               </Link>
               <Link
+                href="/pricing"
+                className="text-[13px] font-medium text-gray-500 hover:text-[#6C5CE7] transition-colors hidden sm:block"
+              >
+                Цены
+              </Link>
+              <Link
                 href="/blog"
                 className="text-[13px] font-medium text-gray-500 hover:text-[#6C5CE7] transition-colors hidden sm:block"
               >
