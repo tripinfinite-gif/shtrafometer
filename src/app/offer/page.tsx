@@ -106,7 +106,7 @@ export default function OfferPage() {
                 <tr>
                   <td className="py-3 pr-4 font-medium text-gray-800">Консалтинг</td>
                   <td className="py-3 pr-4">Экспертный аудит сайта специалистом по интернет-праву. Подготовка индивидуальных юридических документов. Письменные рекомендации.</td>
-                  <td className="py-3 text-right whitespace-nowrap">от 15 000 &#8381;</td>
+                  <td className="py-3 text-right whitespace-nowrap">15 000 &#8381;</td>
                 </tr>
               </tbody>
             </table>

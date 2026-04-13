@@ -17,12 +17,12 @@ export type OrderStatus = 'new' | 'in_progress' | 'completed' | 'cancelled';
 
 export type ProductType =
   | 'fix'           // Исправление нарушений (старый формат, 9900)
-  | 'report'        // PDF-отчёт для руководства (990–1990)
+  | 'report'        // PDF-отчёт для руководства (1990)
   | 'autofix-basic' // Автоисправление — 1 категория (4990)
   | 'autofix-std'   // Автоисправление — все нарушения (9990)
   | 'autofix-prem'  // Автоисправление + ручная проверка (14990)
-  | 'monitoring'    // Мониторинг-подписка (490–1990/мес)
-  | 'consulting'    // Консалтинг (15000–50000)
+  | 'monitoring'    // Мониторинг-подписка (490/мес)
+  | 'consulting'    // Консалтинг (15000)
   | 'email-lead';   // Лид через email-gate (бесплатно)
 
 export interface Order {
