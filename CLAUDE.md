@@ -10,7 +10,7 @@
 - Cheerio (HTML-парсинг), jose (JWT), bcryptjs (пароли)
 - ssh2 + basic-ftp (автофиксы)
 - PostgreSQL 16 — хранение заявок, пользователей, сессий
-- Деплой: Coolify на Beget VPS (Docker, auto-deploy из GitHub)
+- Деплой: Docker Compose на Beget VPS (ручной: git pull + docker compose up --build). Coolify используется только как Traefik-прокси, НЕ для auto-deploy.
 
 ## Архитектура
 
@@ -80,7 +80,7 @@ src/
 - **Пароль в env**: хранится как base64-encoded bcrypt (переменная ADMIN_PASSWORD_HASH_B64), т.к. `$` в .env ломает парсинг.
 - **Хранилище**: PostgreSQL 16 через pg driver, автомиграция при первом запуске.
 - **Личный кабинет**: SMS OTP (SMS.ru) → серверные сессии в PostgreSQL (30 дней). Пользователь может проверять несколько сайтов, заказывать несколько услуг для каждого. Каждый заказ — отдельная оплата через YooKassa.
-- **Деплой**: Coolify на Beget VPS (Docker). Auto-deploy из GitHub (main). Coolify dashboard: http://109.69.18.80:8000.
+- **Деплой**: Docker Compose на Beget VPS. Ручной деплой: `cd /home/deploy/shtrafometer/repo && git pull origin main && cd .. && docker compose up -d --build app`. Coolify dashboard: http://109.69.18.80:8000 (только для Traefik-прокси и infolog24).
 
 ## Законы и проверки
 Полная база знаний: `rf_website_compliance.md` (55 пунктов чек-листа).
