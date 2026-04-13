@@ -1113,121 +1113,137 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* ────── Order Form (shared for all products) ────── */}
+              {/* ────── Order Modal (shared for all products) ────── */}
               {showOrderForm && orderStatus !== "sent" && (
-                <div className="mt-6 card rounded-2xl p-8 sm:p-10 max-w-lg mx-auto animate-fade-up">
-                  {/* Cabinet shortcut */}
-                  <div className="mb-5 text-center">
-                    <a
-                      href={`/auth/register?returnUrl=${encodeURIComponent('/cabinet')}&product=${selectedProduct}&site=${encodeURIComponent(result?.url?.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] || '')}`}
-                      className="text-[13px] text-[#6C5CE7] hover:underline"
-                    >
-                      Оформить через личный кабинет &rarr;
-                    </a>
-                  </div>
-                  <h3 className="text-[17px] font-semibold text-gray-800 mb-1 text-center">
-                    {selectedProduct === "report" ? "Оформление отчёта" :
-                     selectedProduct === "monitoring" ? "Подключение мониторинга" :
-                     selectedProduct === "consulting" ? "Заявка на консалтинг" :
-                     "Заявка на исправление"}
-                  </h3>
-                  <p className="text-[12px] text-gray-400 text-center mb-6">
-                    {selectedProduct === "report" ? "PDF-отчёт • 1 990 ₽" :
-                     selectedProduct === "autofix-basic" ? "Автоисправление Базовый • 4 990 ₽" :
-                     selectedProduct === "autofix-std" ? "Автоисправление Стандарт • 9 990 ₽" :
-                     selectedProduct === "autofix-prem" ? "Автоисправление Премиум • 14 990 ₽" :
-                     selectedProduct === "monitoring" ? "Мониторинг • 490 ₽/мес" :
-                     selectedProduct === "consulting" ? "Консалтинг • 15 000 ₽" :
-                     ""}
-                  </p>
-
-                  <div className="space-y-3">
-                    <input
-                      type="text"
-                      placeholder="Ваше имя"
-                      value={orderForm.name}
-                      onChange={(e) => setOrderForm((p) => ({ ...p, name: e.target.value }))}
-                      className="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-[14px] text-gray-800 placeholder-gray-400 focus:border-primary transition-colors"
-                    />
-                    <input
-                      type="tel"
-                      placeholder="Телефон"
-                      value={orderForm.phone}
-                      onChange={(e) => setOrderForm((p) => ({ ...p, phone: e.target.value }))}
-                      className="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-[14px] text-gray-800 placeholder-gray-400 focus:border-primary transition-colors"
-                    />
-                    <input
-                      type="email"
-                      placeholder="E-mail"
-                      value={orderForm.email}
-                      onChange={(e) => setOrderForm((p) => ({ ...p, email: e.target.value }))}
-                      className="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-[14px] text-gray-800 placeholder-gray-400 focus:border-primary transition-colors"
-                    />
-
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={orderConsent}
-                        onChange={(e) => setOrderConsent(e.target.checked)}
-                        className="mt-1 w-4 h-4 rounded border-gray-300 bg-transparent text-primary focus:ring-primary cursor-pointer accent-[#7B68EE]"
-                      />
-                      <span className="text-[12px] text-gray-500 leading-relaxed">
-                        Принимаю условия{" "}
-                        <a href="/offer" target="_blank" className="text-primary hover:underline">
-                          публичной оферты
-                        </a>{" "}
-                        и даю согласие на{" "}
-                        <a href="/privacy" target="_blank" className="text-primary hover:underline">
-                          обработку персональных данных
-                        </a>
-                      </span>
-                    </label>
-
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowOrderForm(false)}>
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+                  <div
+                    className="relative bg-white rounded-2xl p-8 sm:p-10 w-full max-w-md shadow-2xl animate-fade-up"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Close button */}
                     <button
-                      onClick={async () => {
-                        if (!orderForm.name.trim() || !orderForm.phone.trim() || !orderConsent) return;
-                        setOrderStatus("sending");
-                        try {
-                          const res = await fetch("/api/payment", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              ...orderForm,
-                              siteUrl: result.url,
-                              violations: result.stats.violations,
-                              totalMaxFine: result.totalMaxFine,
-                              productType: selectedProduct,
-                            }),
-                          });
-                          const data = await res.json();
-                          if (res.ok && data.paymentUrl) {
-                            // Redirect to YooKassa payment page
-                            window.location.href = data.paymentUrl;
-                          } else {
-                            setOrderStatus("error");
-                          }
-                        } catch {
-                          setOrderStatus("error");
-                        }
-                      }}
-                      disabled={!orderForm.name.trim() || !orderForm.phone.trim() || !orderForm.email.trim() || !orderConsent || orderStatus === "sending"}
-                      className="w-full px-8 py-3.5 bg-primary hover:bg-primary-hover disabled:bg-gray-300 disabled:opacity-50 rounded-xl text-[14px] font-medium text-white transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
+                      onClick={() => setShowOrderForm(false)}
+                      className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors cursor-pointer text-gray-400 hover:text-gray-600"
                     >
-                      {orderStatus === "sending" ? (
-                        <span className="flex items-center justify-center gap-2.5">
-                          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          Переход к оплате...
-                        </span>
-                      ) : (
-                        "Оплатить и начать"
-                      )}
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
                     </button>
 
-                    {orderStatus === "error" && (
-                      <p className="text-[13px] text-red text-center">
-                        Не удалось отправить. Позвоните нам: +7 (985) 131-33-23
-                      </p>
-                    )}
+                    {/* Cabinet shortcut */}
+                    <div className="mb-5 text-center">
+                      <a
+                        href={`/auth/register?returnUrl=${encodeURIComponent('/cabinet')}&product=${selectedProduct}&site=${encodeURIComponent(result?.url?.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] || '')}`}
+                        className="text-[13px] text-[#6C5CE7] hover:underline"
+                      >
+                        Оформить через личный кабинет &rarr;
+                      </a>
+                    </div>
+                    <h3 className="text-[17px] font-semibold text-gray-800 mb-1 text-center">
+                      {selectedProduct === "report" ? "Оформление отчёта" :
+                       selectedProduct === "monitoring" ? "Подключение мониторинга" :
+                       selectedProduct === "consulting" ? "Заявка на консалтинг" :
+                       "Заявка на исправление"}
+                    </h3>
+                    <p className="text-[12px] text-gray-400 text-center mb-6">
+                      {selectedProduct === "report" ? "PDF-отчёт • 1 990 ₽" :
+                       selectedProduct === "autofix-basic" ? "Автоисправление Базовый • 4 990 ₽" :
+                       selectedProduct === "autofix-std" ? "Автоисправление Стандарт • 9 990 ₽" :
+                       selectedProduct === "autofix-prem" ? "Автоисправление Премиум • 14 990 ₽" :
+                       selectedProduct === "monitoring" ? "Мониторинг • 490 ₽/мес" :
+                       selectedProduct === "consulting" ? "Консалтинг • 15 000 ₽" :
+                       ""}
+                    </p>
+
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        placeholder="Ваше имя"
+                        value={orderForm.name}
+                        onChange={(e) => setOrderForm((p) => ({ ...p, name: e.target.value }))}
+                        className="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-[14px] text-gray-800 placeholder-gray-400 focus:border-primary focus:outline-none transition-colors"
+                      />
+                      <input
+                        type="tel"
+                        placeholder="Телефон"
+                        value={orderForm.phone}
+                        onChange={(e) => setOrderForm((p) => ({ ...p, phone: e.target.value }))}
+                        className="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-[14px] text-gray-800 placeholder-gray-400 focus:border-primary focus:outline-none transition-colors"
+                      />
+                      {selectedProduct === "report" && (
+                        <input
+                          type="email"
+                          placeholder="E-mail (для отправки отчёта)"
+                          value={orderForm.email}
+                          onChange={(e) => setOrderForm((p) => ({ ...p, email: e.target.value }))}
+                          className="w-full bg-white border border-gray-200 rounded-xl px-5 py-3 text-[14px] text-gray-800 placeholder-gray-400 focus:border-primary focus:outline-none transition-colors"
+                        />
+                      )}
+
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={orderConsent}
+                          onChange={(e) => setOrderConsent(e.target.checked)}
+                          className="mt-1 w-4 h-4 rounded border-gray-300 bg-transparent text-primary focus:ring-primary cursor-pointer accent-[#7B68EE]"
+                        />
+                        <span className="text-[12px] text-gray-500 leading-relaxed">
+                          Принимаю условия{" "}
+                          <a href="/offer" target="_blank" className="text-primary hover:underline">
+                            публичной оферты
+                          </a>{" "}
+                          и даю согласие на{" "}
+                          <a href="/privacy" target="_blank" className="text-primary hover:underline">
+                            обработку персональных данных
+                          </a>
+                        </span>
+                      </label>
+
+                      <button
+                        onClick={async () => {
+                          if (!orderForm.name.trim() || !orderForm.phone.trim() || !orderConsent) return;
+                          if (selectedProduct === "report" && !orderForm.email.trim()) return;
+                          setOrderStatus("sending");
+                          try {
+                            const res = await fetch("/api/payment", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                ...orderForm,
+                                siteUrl: result.url,
+                                violations: result.stats.violations,
+                                totalMaxFine: result.totalMaxFine,
+                                productType: selectedProduct,
+                              }),
+                            });
+                            const data = await res.json();
+                            if (res.ok && data.paymentUrl) {
+                              window.location.href = data.paymentUrl;
+                            } else {
+                              setOrderStatus("error");
+                            }
+                          } catch {
+                            setOrderStatus("error");
+                          }
+                        }}
+                        disabled={!orderForm.name.trim() || !orderForm.phone.trim() || (selectedProduct === "report" && !orderForm.email.trim()) || !orderConsent || orderStatus === "sending"}
+                        className="w-full px-8 py-3.5 bg-primary hover:bg-primary-hover disabled:bg-gray-300 disabled:opacity-50 rounded-xl text-[14px] font-medium text-white transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
+                      >
+                        {orderStatus === "sending" ? (
+                          <span className="flex items-center justify-center gap-2.5">
+                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Переход к оплате...
+                          </span>
+                        ) : (
+                          "Оплатить и начать"
+                        )}
+                      </button>
+
+                      {orderStatus === "error" && (
+                        <p className="text-[13px] text-red text-center">
+                          Не удалось отправить. Позвоните нам: +7 (985) 131-33-23
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
