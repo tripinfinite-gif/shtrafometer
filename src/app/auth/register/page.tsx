@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+declare global { interface Window { ym?: (...args: unknown[]) => void; } }
+
 type Step = 'info' | 'code';
 
 export default function RegisterPage() {
@@ -141,6 +143,7 @@ export default function RegisterPage() {
         redirect = url.pathname + url.search;
       }
 
+      if (typeof window !== 'undefined' && window.ym) window.ym(108525306, 'reachGoal', 'user_register');
       router.push(redirect);
     } catch {
       setError('Ошибка сети. Попробуйте позже.');

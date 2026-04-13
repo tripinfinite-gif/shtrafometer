@@ -5,6 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { CheckResponse } from '@/checks/types';
 
+declare global { interface Window { ym?: (...args: unknown[]) => void; } }
+function ym_goal(goal: string) { window.ym?.(108525306, 'reachGoal', goal); }
+
 type Tab = 'overview' | 'check' | 'history' | 'services';
 
 interface SiteData {
@@ -73,6 +76,7 @@ export default function SiteDetailPage() {
   async function handleCheck() {
     setChecking(true);
     setTab('check');
+    ym_goal('free_check');
     try {
       const res = await fetch(`/api/cabinet/sites/${encodeURIComponent(domain)}/check`, { method: 'POST' });
       const d = await res.json();
@@ -88,6 +92,8 @@ export default function SiteDetailPage() {
 
   async function handleOrder(productType: string) {
     setOrdering(productType);
+    ym_goal('order_submit');
+    if (productType === 'report') ym_goal('pdf_download');
     try {
       const res = await fetch('/api/cabinet/orders', {
         method: 'POST',

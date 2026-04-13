@@ -2,11 +2,17 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
+
+declare global { interface Window { ym?: (...args: unknown[]) => void; } }
 
 function SuccessContent() {
   const params = useSearchParams();
   const orderId = params.get('order');
+
+  useEffect(() => {
+    window.ym?.(108525306, 'reachGoal', 'payment_success');
+  }, []);
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">

@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+declare global { interface Window { ym?: (...args: unknown[]) => void; } }
+
 type Step = 'phone' | 'code';
 
 export default function LoginPage() {
@@ -136,6 +138,7 @@ export default function LoginPage() {
       }
 
       // Redirect to cabinet
+      if (typeof window !== 'undefined' && window.ym) window.ym(108525306, 'reachGoal', 'user_login');
       router.push(returnUrl);
     } catch {
       setError('Ошибка сети. Попробуйте позже.');

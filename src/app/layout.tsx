@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 import { cookies } from "next/headers";
 import "./globals.css";
 
@@ -27,6 +28,28 @@ export default async function RootLayout({
   const isLoggedIn = !!cookieStore.get('user_session')?.value;
   return (
     <html lang="ru">
+      <head>
+        <Script
+          id="yandex-metrika"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function(m,e,t,r,i,k,a){
+                m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+                m[i].l=1*new Date();
+                for(var j=0;j<document.scripts.length;j++){if(document.scripts[j].src===r)return;}
+                k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+              })(window,document,'script','https://mc.yandex.ru/metrika/tag.js?id=108525306','ym');
+              ym(108525306,'init',{ssr:true,webvisor:true,clickmap:true,ecommerce:"dataLayer",accurateTrackBounce:true,trackLinks:true});
+            `,
+          }}
+        />
+        <noscript>
+          <div>
+            <img src="https://mc.yandex.ru/watch/108525306" style={{position:'absolute',left:'-9999px'}} alt="" />
+          </div>
+        </noscript>
+      </head>
       <body className="min-h-screen bg-white text-gray-800">
         {/* ────── Global Navigation ────── */}
         <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200/80">

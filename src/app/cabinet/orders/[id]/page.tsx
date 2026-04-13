@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+declare global { interface Window { ym?: (...args: unknown[]) => void; } }
+
 interface OrderDetail {
   id: string;
   created_at: string;
@@ -40,6 +42,7 @@ export default function OrderDetailPage() {
 
   async function handlePay() {
     setPaying(true);
+    window.ym?.(108525306, 'reachGoal', 'order_submit');
     try {
       const res = await fetch(`/api/cabinet/orders/${id}/pay`, { method: 'POST' });
       const data = await res.json();

@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 // @ts-expect-error -- react-dom types not installed
 import { createPortal } from "react-dom";
 
+declare global { interface Window { ym?: (...args: unknown[]) => void; } }
+function ym_goal(goal: string) { window.ym?.(108525306, 'reachGoal', goal); }
+
 // ─── Types ──────────────────────────────────────────────────────────────
 
 interface Violation {
@@ -231,6 +234,7 @@ export default function Home() {
 
   async function handleCheck() {
     if (!url.trim()) return;
+    ym_goal('free_check');
     setAppState("loading");
     setErrorMsg("");
     setResult(null);
@@ -946,6 +950,7 @@ export default function Home() {
                     onClick={() => {
                       setSelectedProduct("autofix-basic");
                       setShowOrderForm(true);
+                      ym_goal('order_form_open');
                     }}
                     className="w-full py-3 rounded-xl text-[14px] font-medium text-primary bg-primary-lighter hover:bg-primary-light border border-primary/20 transition-colors cursor-pointer"
                   >
@@ -986,6 +991,7 @@ export default function Home() {
                     onClick={() => {
                       setSelectedProduct("autofix-std");
                       setShowOrderForm(true);
+                      ym_goal('order_form_open');
                     }}
                     className="w-full py-3 rounded-xl text-[14px] font-medium text-white bg-primary hover:bg-primary-hover transition-colors cursor-pointer shadow-md"
                   >
@@ -1022,6 +1028,7 @@ export default function Home() {
                     onClick={() => {
                       setSelectedProduct("autofix-prem");
                       setShowOrderForm(true);
+                      ym_goal('order_form_open');
                     }}
                     className="w-full py-3 rounded-xl text-[14px] font-medium text-primary bg-primary-lighter hover:bg-primary-light border border-primary/20 transition-colors cursor-pointer"
                   >
@@ -1074,7 +1081,7 @@ export default function Home() {
                 <p className="text-[11px] text-gray-400 uppercase tracking-widest mb-3 text-center">Дополнительно</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <button
-                    onClick={() => { setSelectedProduct("report"); setShowOrderForm(true); }}
+                    onClick={() => { setSelectedProduct("report"); setShowOrderForm(true); ym_goal('order_form_open'); }}
                     className="card rounded-xl p-4 flex items-center gap-4 text-left hover:border-primary/30 transition-colors cursor-pointer group"
                   >
                     <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -1087,7 +1094,7 @@ export default function Home() {
                     <p className="text-[15px] font-semibold text-gray-800 whitespace-nowrap">1 990 &#8381;</p>
                   </button>
                   <button
-                    onClick={() => { setSelectedProduct("monitoring"); setShowOrderForm(true); }}
+                    onClick={() => { setSelectedProduct("monitoring"); setShowOrderForm(true); ym_goal('order_form_open'); }}
                     className="card rounded-xl p-4 flex items-center gap-4 text-left hover:border-primary/30 transition-colors cursor-pointer group"
                   >
                     <div className="w-10 h-10 rounded-lg bg-green/10 flex items-center justify-center shrink-0">
@@ -1100,7 +1107,7 @@ export default function Home() {
                     <p className="text-[15px] font-semibold text-gray-800 whitespace-nowrap">490 &#8381;/мес</p>
                   </button>
                   <button
-                    onClick={() => { setSelectedProduct("consulting"); setShowOrderForm(true); }}
+                    onClick={() => { setSelectedProduct("consulting"); setShowOrderForm(true); ym_goal('order_form_open'); }}
                     className="card rounded-xl p-4 flex items-center gap-4 text-left hover:border-primary/30 transition-colors cursor-pointer group"
                   >
                     <div className="w-10 h-10 rounded-lg bg-[#F59E0B]/10 flex items-center justify-center shrink-0">
@@ -1205,6 +1212,7 @@ export default function Home() {
                           if (!orderForm.name.trim() || !orderForm.phone.trim() || !orderConsent) return;
                           if (selectedProduct === "report" && !orderForm.email.trim()) return;
                           setOrderStatus("sending");
+                          ym_goal('order_submit');
                           try {
                             const res = await fetch("/api/payment", {
                               method: "POST",
