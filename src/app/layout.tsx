@@ -146,7 +146,7 @@ export default async function RootLayout({
                 </Link>
               </div>
               <p className="text-[11px] text-gray-400">
-                &copy; {new Date().getFullYear()} ООО &laquo;Инворк&raquo;. Все права защищены.
+                &copy; {new Date().getFullYear()}{" "}ООО &laquo;Инворк&raquo;. Все права защищены.
               </p>
             </div>
             <p className="text-[11px] text-gray-400 mt-6 leading-relaxed max-w-2xl">

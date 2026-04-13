@@ -170,7 +170,7 @@ export default function PrivacyPage() {
       <footer className="border-t border-white/[0.04] py-6">
         <div className="max-w-[720px] mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-[11px] text-[#424245]">
-            &copy; {new Date().getFullYear()} ООО &laquo;Инворк&raquo;. Все права защищены.
+            &copy; {new Date().getFullYear()}{" "}ООО &laquo;Инворк&raquo;. Все права защищены.
           </p>
           <Link href="/" className="text-[12px] text-[#0071e3] hover:underline">
             Вернуться к проверке
