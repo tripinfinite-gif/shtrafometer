@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+// @ts-expect-error -- react-dom types not installed
+import { createPortal } from "react-dom";
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -1114,7 +1116,7 @@ export default function Home() {
               </div>
 
               {/* ────── Order Modal (shared for all products) ────── */}
-              {showOrderForm && orderStatus !== "sent" && (
+              {showOrderForm && orderStatus !== "sent" && createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowOrderForm(false)}>
                   <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
                   <div
@@ -1245,7 +1247,8 @@ export default function Home() {
                       )}
                     </div>
                   </div>
-                </div>
+                </div>,
+                document.body
               )}
 
               {/* ────── Trust signals ────── */}
