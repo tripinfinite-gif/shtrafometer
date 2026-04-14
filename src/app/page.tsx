@@ -232,8 +232,9 @@ export default function Home() {
     });
   }, []);
 
-  async function handleCheck() {
-    if (!url.trim()) return;
+  async function handleCheck(explicitUrl?: string) {
+    const targetUrl = (explicitUrl || url).trim();
+    if (!targetUrl) return;
     ym_goal('free_check');
     setAppState("loading");
     setErrorMsg("");
@@ -250,7 +251,7 @@ export default function Home() {
       const res = await fetch("/api/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
+        body: JSON.stringify({ url: targetUrl }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -265,6 +266,18 @@ export default function Home() {
       setAppState("error");
     }
   }
+
+  // Auto-trigger check when coming from a landing page (?url=https://...)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const urlParam = params.get("url");
+    if (urlParam) {
+      setUrl(urlParam);
+      handleCheck(urlParam);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isIdle = appState === "idle";
 

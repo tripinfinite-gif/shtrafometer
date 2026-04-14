@@ -292,8 +292,8 @@ export default function AgentstvoLanding() {
               <div key={i} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                 <div className="flex items-start gap-3 mb-4">
                   <div className="w-7 h-7 bg-red-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-                    <svg className="w-3.5 h-3.5 text-red-500" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                    <svg className="w-3.5 h-3.5 text-red-500" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M4 4l8 8M12 4l-8 8" />
                     </svg>
                   </div>
                   <p className="text-[14px] font-semibold text-gray-500 italic leading-snug">
