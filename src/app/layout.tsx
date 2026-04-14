@@ -9,6 +9,12 @@ export const metadata: Metadata = {
   description:
     "Бесплатный анализ сайта по 8 законам Российской Федерации. 35+ автоматических проверок, расчёт штрафов, рекомендации по исправлению. Реальные кейсы штрафов и разборы нарушений.",
   metadataBase: new URL("https://shtrafometer.ru"),
+  verification: {
+    yandex: process.env.NEXT_PUBLIC_YANDEX_WEBMASTER_KEY,
+  },
+  alternates: {
+    canonical: 'https://shtrafometer.ru',
+  },
   openGraph: {
     title: "Штрафометр — Проверка сайта на штрафы по законам РФ",
     description: "Бесплатный анализ сайта по 8 законам РФ. 35+ проверок, расчёт штрафов, рекомендации.",
@@ -16,6 +22,14 @@ export const metadata: Metadata = {
     siteName: "Штрафометр",
     locale: "ru_RU",
     type: "website",
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Штрафометр — Проверка сайта на штрафы по законам РФ',
+      },
+    ],
   },
 };
 
@@ -51,6 +65,100 @@ export default async function RootLayout({
         </noscript>
       </head>
       <body className="min-h-screen bg-white text-gray-800">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "Штрафометр",
+              "legalName": "ООО «Инворк»",
+              "url": "https://shtrafometer.ru",
+              "logo": "https://shtrafometer.ru/icon-512.png",
+              "foundingDate": "2026",
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "telephone": "+7-985-131-33-23",
+                "contactType": "customer service",
+                "availableLanguage": "Russian"
+              },
+              "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "ул. Большая Пионерская, д. 20, помещ. 2/1",
+                "addressLocality": "Москва",
+                "postalCode": "115054",
+                "addressCountry": "RU"
+              },
+              "sameAs": []
+            })
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              "mainEntity": [
+                {
+                  "@type": "Question",
+                  "name": "Как проверить сайт на соответствие законам РФ?",
+                  "acceptedAnswer": { "@type": "Answer", "text": "Введите URL сайта в форму на shtrafometer.ru и нажмите «Проверить». Сервис автоматически проанализирует сайт по 35+ критериям: 152-ФЗ (персональные данные), 38-ФЗ (реклама), 168-ФЗ (русский язык), ЗоЗПП, 54-ФЗ, 436-ФЗ. Проверка занимает около 30 секунд." }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Какие штрафы грозят за нарушения на сайте?",
+                  "acceptedAnswer": { "@type": "Answer", "text": "Штрафы зависят от типа нарушения: отсутствие политики конфиденциальности — до 700 000 ₽, использование Google Analytics — до 6 000 000 ₽, реклама без маркировки erid — до 500 000 ₽, нарушение 168-ФЗ — до 500 000 ₽. Максимальный штраф достигает 18 000 000 ₽ за повторные нарушения 152-ФЗ." }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Нужна ли политика конфиденциальности на сайте?",
+                  "acceptedAnswer": { "@type": "Answer", "text": "Да, политика конфиденциальности обязательна для любого сайта, который собирает персональные данные пользователей (имя, email, телефон, cookie). Это требование 152-ФЗ «О персональных данных». Штраф за отсутствие — от 100 000 до 700 000 рублей." }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Можно ли использовать Google Analytics на российском сайте?",
+                  "acceptedAnswer": { "@type": "Answer", "text": "Использование Google Analytics нарушает требования 152-ФЗ о локализации персональных данных, так как данные передаются на серверы в США. Роскомнадзор уже штрафовал компании на суммы до 6 000 000 рублей. Рекомендуется перейти на Яндекс.Метрику или VK Рекламу." }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Что такое маркировка рекламы и как получить erid?",
+                  "acceptedAnswer": { "@type": "Answer", "text": "С 1 сентября 2023 года вся интернет-реклама в России должна содержать пометку «Реклама», идентификатор erid и данные рекламодателя. Erid получают через операторов рекламных данных (ОРД): Яндекс ОРД, VK ОРД, МТС ОРД. Штраф за отсутствие маркировки — от 200 000 до 500 000 рублей." }
+                }
+              ]
+            })
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              "name": "Штрафометр",
+              "url": "https://shtrafometer.ru",
+              "description": "Бесплатный онлайн-сервис проверки сайтов на соответствие законодательству РФ. Анализ по 8 федеральным законам, 35+ автоматических проверок, расчёт штрафов.",
+              "applicationCategory": "BusinessApplication",
+              "operatingSystem": "Web",
+              "inLanguage": "ru",
+              "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "RUB",
+                "description": "Бесплатная базовая проверка"
+              },
+              "featureList": [
+                "Проверка по 152-ФЗ (персональные данные)",
+                "Проверка по 38-ФЗ (реклама)",
+                "Проверка по 168-ФЗ (государственный язык)",
+                "Проверка по 436-ФЗ (защита детей)",
+                "Расчёт штрафов",
+                "Рекомендации по исправлению",
+                "Автоматическое исправление нарушений"
+              ]
+            })
+          }}
+        />
         {/* ────── Global Navigation ────── */}
         <nav className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200/80">
           <div className="max-w-[1120px] mx-auto px-6 h-14 flex items-center justify-between">
@@ -142,6 +250,10 @@ export default async function RootLayout({
                   <br />
                   <a href="mailto:info@shtrafometer.ru" className="text-gray-800 hover:text-[#6C5CE7] transition-colors">
                     info@shtrafometer.ru
+                  </a>
+                  <br />
+                  <a href="https://t.me/shtrafometer" className="text-gray-800 hover:text-[#6C5CE7] transition-colors">
+                    Telegram
                   </a>
                   <br />
                   <span className="text-gray-400">Пн — Пт, 9:00 — 21:00</span>

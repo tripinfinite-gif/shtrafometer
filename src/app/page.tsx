@@ -330,6 +330,62 @@ export default function Home() {
         </div>
       </div>
 
+      {/* ────── Blog preview (idle only) ────── */}
+      {isIdle && (
+        <section className="max-w-[1120px] mx-auto px-6 pb-20 animate-fade-up">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-[20px] font-semibold text-gray-800">
+              Реальные случаи штрафов
+            </h2>
+            <a href="/blog" className="text-[13px] text-[#6C5CE7] hover:underline">
+              Все статьи →
+            </a>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              {
+                href: "/blog/chek-list-10-veshchej-na-sajte-po-zakonu",
+                label: "Чек-лист",
+                title: "10 вещей, которые должны быть на каждом сайте по закону",
+                law: "152-ФЗ · ЗоЗПП",
+              },
+              {
+                href: "/blog/google-analytics-shtraf-do-6-millionov",
+                label: "Локализация",
+                title: "Google Analytics — почему это теперь штраф до 6 млн ₽",
+                law: "152-ФЗ",
+              },
+              {
+                href: "/blog/shtrafy-za-sajt-bez-politiki-konfidencialnosti",
+                label: "Персданные",
+                title: "Штрафы за сайт без политики конфиденциальности в 2026 году",
+                law: "152-ФЗ",
+              },
+              {
+                href: "/blog/markirovka-reklamy-erid-kak-poluchit",
+                label: "Реклама",
+                title: "Маркировка рекламы: что такое erid и как его получить",
+                law: "38-ФЗ",
+              },
+            ].map((post) => (
+              <a
+                key={post.href}
+                href={post.href}
+                className="card rounded-2xl p-5 flex flex-col gap-3 hover:shadow-md transition-shadow group"
+              >
+                <span className="text-[11px] font-medium text-[#6C5CE7] bg-[#6C5CE7]/8 px-2.5 py-1 rounded-full self-start">
+                  {post.label}
+                </span>
+                <p className="text-[14px] font-medium text-gray-800 leading-snug group-hover:text-[#6C5CE7] transition-colors">
+                  {post.title}
+                </p>
+                <span className="text-[11px] text-gray-400 mt-auto">{post.law}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ────── Loading ────── */}
       {appState === "loading" && (
         <div className="max-w-[680px] mx-auto px-6 pb-20 animate-fade-up">

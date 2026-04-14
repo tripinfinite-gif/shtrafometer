@@ -21,17 +21,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${post.title} — Штрафометр`,
     description: post.excerpt,
+    alternates: {
+      canonical: `https://shtrafometer.ru/blog/${slug}`,
+    },
     openGraph: {
       title: post.title,
       description: post.excerpt,
       type: "article",
-      images: [`/blog/${post.slug}.png`],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: post.title,
-      description: post.excerpt,
-      images: [`/blog/${post.slug}.png`],
+      locale: "ru_RU",
+      siteName: "Штрафометр",
+      images: [{ url: 'https://shtrafometer.ru/og-image.png', width: 1200, height: 630, alt: post.title }],
     },
   };
 }
@@ -54,8 +53,52 @@ export default async function BlogPostPage({ params }: PageProps) {
     related = related.slice(0, 3);
   }
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Штрафометр", "item": "https://shtrafometer.ru" },
+      { "@type": "ListItem", "position": 2, "name": "Блог", "item": "https://shtrafometer.ru/blog" },
+      { "@type": "ListItem", "position": 3, "name": post.title, "item": `https://shtrafometer.ru/blog/${post.slug}` },
+    ]
+  };
+
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "headline": post.title,
+    "description": post.excerpt,
+    "datePublished": post.publishedAt,
+    "dateModified": post.publishedAt,
+    "author": {
+      "@type": "Organization",
+      "name": "Штрафометр",
+      "url": "https://shtrafometer.ru"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Штрафометр",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://shtrafometer.ru/icon-512.png"
+      }
+    },
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `https://shtrafometer.ru/blog/${post.slug}`
+    },
+    "inLanguage": "ru",
+    "about": post.violation?.law || post.law,
+    "keywords": post.tags.join(', ')
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
       {/* Back link */}
       <div className="mb-6">
         <Link
