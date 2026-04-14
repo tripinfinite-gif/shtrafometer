@@ -557,7 +557,7 @@ ALTER TABLE orders ADD COLUMN discount_percent INTEGER DEFAULT 0;
 - [ ] CTA-баннер "Зарегистрируйтесь бесплатно"
 - [ ] Модальное окно регистрации при клике на скрытое
 - [ ] Sticky-бар на мобильном
-- [ ] Убрать старый email-gate
+- [x] Убрать старый email-gate (заменён на регистрацию по SMS, v1.5)
 
 ### Phase B — Проверка в кабинете + история (2-3 дня)
 - [ ] Таблица check_history + API

@@ -173,4 +173,17 @@ export async function ensureSchema(): Promise<void> {
   await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS questionnaire JSONB`);
   await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_percent INTEGER NOT NULL DEFAULT 0`);
   await query(`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders (user_id) WHERE user_id IS NOT NULL`);
+
+  // ─── OAuth provider columns (safe migration) ───────────────────────
+  await query(`ALTER TABLE users ALTER COLUMN phone DROP NOT NULL`).catch(() => { /* already nullable */ });
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS yandex_id TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS vk_id TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_provider TEXT NOT NULL DEFAULT 'phone'`);
+  await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_yandex ON users (yandex_id) WHERE yandex_id IS NOT NULL`);
+  await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_vk ON users (vk_id) WHERE vk_id IS NOT NULL`);
+
+  // ─── OTP: add email support (safe migration) ──────────────────────
+  await query(`ALTER TABLE otp_codes ALTER COLUMN phone DROP NOT NULL`).catch(() => { /* already nullable */ });
+  await query(`ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS email TEXT`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_otp_email ON otp_codes (email, created_at DESC) WHERE email IS NOT NULL`);
 }

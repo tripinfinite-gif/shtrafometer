@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       orderId,
       user.id,
       user.name,
-      user.phone,
+      user.phone || '',
       user.email || '',
       `https://${domain}`,
       domain,

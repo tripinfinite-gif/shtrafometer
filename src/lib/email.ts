@@ -42,6 +42,45 @@ async function sendMail(to: string, subject: string, html: string, attachments?:
   await transport.sendMail({ from: FROM_EMAIL, to, subject, html, attachments });
 }
 
+// ─── OTP Email ────────────────────────────────────────────────────
+
+/** Send 6-digit login code via email */
+export async function sendEmailOtpCode(to: string, code: string): Promise<void> {
+  await sendMail(
+    to,
+    `${code} — код входа в Штрафометр`,
+    `
+<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f8f9fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+  <div style="max-width:480px;margin:0 auto;padding:40px 20px">
+    <div style="background:#fff;border-radius:16px;padding:40px;box-shadow:0 1px 3px rgba(0,0,0,0.08)">
+      <div style="text-align:center;margin-bottom:28px">
+        <div style="display:inline-block;background:#6C5CE7;border-radius:10px;padding:8px 14px">
+          <span style="color:#fff;font-size:18px;font-weight:700">Штрафометр</span>
+        </div>
+      </div>
+      <p style="font-size:15px;color:#374151;margin:0 0 20px;text-align:center">
+        Ваш код для входа в личный кабинет:
+      </p>
+      <div style="background:#F3F0FF;border-radius:12px;padding:20px;text-align:center;margin-bottom:24px">
+        <span style="font-size:36px;font-weight:700;color:#6C5CE7;letter-spacing:8px">${code}</span>
+      </div>
+      <p style="font-size:13px;color:#9CA3AF;text-align:center;margin:0">
+        Код действителен 5 минут. Не передавайте его никому.
+      </p>
+    </div>
+    <p style="text-align:center;font-size:11px;color:#D1D5DB;margin-top:20px">
+      ООО «Инворк» · shtrafometer.ru
+    </p>
+  </div>
+</body>
+</html>
+    `.trim(),
+  );
+}
+
 // ─── Email templates ───────────────────────────────────────────────
 
 interface ViolationSummary {

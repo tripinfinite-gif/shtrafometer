@@ -154,13 +154,16 @@ export interface User {
   id: string;
   createdAt: string;
   name: string;
-  phone: string;               // +7XXXXXXXXXX
+  phone: string | null;        // +7XXXXXXXXXX, null for OAuth-only users
   email: string | null;
   emailVerified: boolean;
   companyName: string | null;
   companyInn: string | null;
   lastLoginAt: string | null;
   loginCount: number;
+  yandexId?: string | null;
+  vkId?: string | null;
+  authProvider?: string;       // 'phone' | 'email' | 'yandex' | 'vk'
 }
 
 export interface UserSession {

@@ -89,7 +89,7 @@ export default function SettingsPage() {
           <label className="block text-sm font-medium text-gray-700 mb-1">Телефон</label>
           <input
             type="tel"
-            value={profile.phone}
+            value={profile.phone || ''}
             disabled
             className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-500 text-sm cursor-not-allowed"
           />

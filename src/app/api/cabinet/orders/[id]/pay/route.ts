@@ -44,7 +44,7 @@ export async function POST(
       orderId: id,
       productType: order.product_type as ProductType,
       email: user.email || '',
-      phone: user.phone,
+      phone: user.phone || undefined,
       returnUrl: `https://shtrafometer.ru/cabinet/orders/${id}`,
     });
 

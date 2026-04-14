@@ -2,6 +2,7 @@ import { randomUUID, randomInt } from 'crypto';
 import { cookies } from 'next/headers';
 import { query } from './db';
 import { sendOtpSms } from './sms';
+import { sendEmailOtpCode } from './email';
 import type { User, UserSession } from './types';
 
 // ─── Constants ──────────────────────────────────────────────────────
@@ -288,6 +289,192 @@ export async function cleanupExpired(): Promise<void> {
   await query(`DELETE FROM otp_codes WHERE expires_at < NOW()`);
 }
 
+// ─── Email OTP ──────────────────────────────────────────────────────
+
+/** Check email OTP rate limit (60s cooldown, 3 per 10 min) */
+export async function checkEmailOtpRateLimit(email: string): Promise<{ allowed: boolean; retryAfter?: number }> {
+  const normalized = email.trim().toLowerCase();
+
+  const lastOtp = await query<{ created_at: string }>(
+    `SELECT created_at FROM otp_codes
+     WHERE email = $1 AND created_at > NOW() - INTERVAL '60 seconds'
+     ORDER BY created_at DESC LIMIT 1`,
+    [normalized],
+  );
+  if (lastOtp.rows.length > 0) {
+    const sent = new Date(lastOtp.rows[0].created_at).getTime();
+    const retryAfter = Math.ceil((sent + OTP_COOLDOWN_MS - Date.now()) / 1000);
+    return { allowed: false, retryAfter: Math.max(retryAfter, 1) };
+  }
+
+  const emailCount = await query<{ cnt: string }>(
+    `SELECT COUNT(*) as cnt FROM otp_codes
+     WHERE email = $1 AND created_at > NOW() - INTERVAL '10 minutes'`,
+    [normalized],
+  );
+  if (Number(emailCount.rows[0].cnt) >= OTP_MAX_PER_PHONE_10MIN) {
+    return { allowed: false, retryAfter: 600 };
+  }
+
+  return { allowed: true };
+}
+
+/** Send OTP to email */
+export async function sendEmailOtp(email: string): Promise<{ success: boolean; error?: string }> {
+  const normalized = email.trim().toLowerCase();
+  const code = generateOtp();
+  const id = randomUUID();
+  const expiresAt = new Date(Date.now() + OTP_TTL_MS);
+
+  await query(
+    `INSERT INTO otp_codes (id, phone, email, code, purpose, expires_at)
+     VALUES ($1, NULL, $2, $3, 'email_login', $4)`,
+    [id, normalized, code, expiresAt.toISOString()],
+  );
+
+  try {
+    await sendEmailOtpCode(normalized, code);
+    return { success: true };
+  } catch (err) {
+    console.error('[Email OTP] Send failed:', err);
+    return { success: false, error: 'Не удалось отправить код. Проверьте email.' };
+  }
+}
+
+/** Verify email OTP and return/create user */
+export async function verifyEmailOtp(
+  email: string,
+  code: string,
+  name?: string,
+): Promise<{ success: boolean; user?: User; isNewUser?: boolean; error?: string }> {
+  const normalized = email.trim().toLowerCase();
+
+  const otpResult = await query<{ id: string; code: string; attempts: number }>(
+    `UPDATE otp_codes
+     SET attempts = attempts + 1
+     WHERE id = (
+       SELECT id FROM otp_codes
+       WHERE email = $1 AND purpose = 'email_login' AND used = FALSE AND expires_at > NOW() AND attempts < $2
+       ORDER BY created_at DESC LIMIT 1
+       FOR UPDATE SKIP LOCKED
+     )
+     RETURNING id, code, attempts`,
+    [normalized, OTP_MAX_ATTEMPTS],
+  );
+
+  if (otpResult.rows.length === 0) {
+    return { success: false, error: 'Код истёк или не найден. Запросите новый.' };
+  }
+
+  const otp = otpResult.rows[0];
+
+  if (otp.code !== code) {
+    const remaining = OTP_MAX_ATTEMPTS - otp.attempts;
+    return {
+      success: false,
+      error: remaining > 0
+        ? `Неверный код. Осталось попыток: ${remaining}`
+        : 'Неверный код. Запросите новый.',
+    };
+  }
+
+  await query(`UPDATE otp_codes SET used = TRUE WHERE id = $1`, [otp.id]);
+
+  const existing = await query<Record<string, unknown>>(
+    `SELECT * FROM users WHERE email = $1`,
+    [normalized],
+  );
+
+  let user: User;
+  let isNewUser = false;
+
+  if (existing.rows.length > 0) {
+    await query(
+      `UPDATE users SET last_login_at = NOW(), login_count = login_count + 1, email_verified = TRUE WHERE id = $1`,
+      [existing.rows[0].id],
+    );
+    user = mapUserRow({ ...existing.rows[0], email_verified: true });
+  } else {
+    const userId = randomUUID();
+    const userName = name?.trim()?.slice(0, 100) || normalized.split('@')[0] || 'Пользователь';
+    await query(
+      `INSERT INTO users (id, name, email, email_verified, auth_provider, last_login_at, login_count)
+       VALUES ($1, $2, $3, TRUE, 'email', NOW(), 1)`,
+      [userId, userName, normalized],
+    );
+    user = {
+      id: userId,
+      createdAt: new Date().toISOString(),
+      name: userName,
+      phone: null,
+      email: normalized,
+      emailVerified: true,
+      companyName: null,
+      companyInn: null,
+      lastLoginAt: new Date().toISOString(),
+      loginCount: 1,
+      authProvider: 'email',
+    };
+    isNewUser = true;
+  }
+
+  return { success: true, user, isNewUser };
+}
+
+// ─── OAuth ──────────────────────────────────────────────────────────
+
+/** Find or create user from OAuth provider data */
+export async function findOrCreateOAuthUser(
+  provider: 'yandex' | 'vk',
+  providerId: string,
+  name: string,
+  email?: string,
+): Promise<{ user: User; isNewUser: boolean }> {
+  const idColumn = provider === 'yandex' ? 'yandex_id' : 'vk_id';
+
+  // 1. Look up by provider ID
+  let result = await query<Record<string, unknown>>(
+    `SELECT * FROM users WHERE ${idColumn} = $1`,
+    [providerId],
+  );
+
+  if (result.rows.length > 0) {
+    await query(
+      `UPDATE users SET last_login_at = NOW(), login_count = login_count + 1 WHERE id = $1`,
+      [result.rows[0].id],
+    );
+    return { user: mapUserRow(result.rows[0]), isNewUser: false };
+  }
+
+  // 2. Look up by email and link provider ID to existing account
+  if (email) {
+    result = await query<Record<string, unknown>>(
+      `SELECT * FROM users WHERE email = $1`,
+      [email],
+    );
+    if (result.rows.length > 0) {
+      const updated = await query<Record<string, unknown>>(
+        `UPDATE users SET ${idColumn} = $1, last_login_at = NOW(), login_count = login_count + 1
+         WHERE id = $2 RETURNING *`,
+        [providerId, result.rows[0].id],
+      );
+      return { user: mapUserRow(updated.rows[0]), isNewUser: false };
+    }
+  }
+
+  // 3. Create new user
+  const userId = randomUUID();
+  const safeName = name?.trim()?.slice(0, 100) || 'Пользователь';
+  const inserted = await query<Record<string, unknown>>(
+    `INSERT INTO users (id, name, email, email_verified, ${idColumn}, auth_provider, last_login_at, login_count)
+     VALUES ($1, $2, $3, $4, $5, $6, NOW(), 1)
+     RETURNING *`,
+    [userId, safeName, email || null, !!email, providerId, provider],
+  );
+
+  return { user: mapUserRow(inserted.rows[0]), isNewUser: true };
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────
 
 export const USER_SESSION_COOKIE_NAME = USER_SESSION_COOKIE;
@@ -297,12 +484,15 @@ function mapUserRow(row: Record<string, unknown>): User {
     id: row.id as string,
     createdAt: (row.created_at as Date | string)?.toString() || '',
     name: row.name as string,
-    phone: row.phone as string,
+    phone: (row.phone as string) || null,
     email: (row.email as string) || null,
     emailVerified: (row.email_verified as boolean) || false,
     companyName: (row.company_name as string) || null,
     companyInn: (row.company_inn as string) || null,
     lastLoginAt: row.last_login_at ? (row.last_login_at as Date | string).toString() : null,
     loginCount: (row.login_count as number) || 0,
+    yandexId: (row.yandex_id as string) || null,
+    vkId: (row.vk_id as string) || null,
+    authProvider: (row.auth_provider as string) || 'phone',
   };
 }
