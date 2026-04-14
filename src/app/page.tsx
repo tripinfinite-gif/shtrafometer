@@ -315,7 +315,7 @@ export default function Home() {
                 className="flex-1 bg-transparent px-5 py-3.5 text-[17px] text-gray-800 placeholder-gray-400 border-0 focus:ring-0 focus:shadow-none disabled:opacity-40 rounded-xl"
               />
               <button
-                onClick={handleCheck}
+                onClick={() => handleCheck()}
                 disabled={appState === "loading" || !url.trim()}
                 className="px-8 py-3.5 bg-primary hover:bg-primary-hover disabled:bg-gray-300 disabled:opacity-50 rounded-xl text-[15px] font-medium text-white transition-all duration-200 whitespace-nowrap cursor-pointer disabled:cursor-not-allowed"
               >
