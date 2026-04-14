@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHmac } from 'crypto';
 import { getOrder, saveOrder } from '@/lib/storage';
-import { getPaymentPrice } from '@/lib/yookassa';
 import { sendOrderConfirmation, sendAdminNotification } from '@/lib/email';
 
 /**
  * YooKassa webhook handler.
  * Called when payment status changes (payment.succeeded, payment.canceled, etc.)
  * Docs: https://yookassa.ru/developers/using-api/webhooks
+ *
+ * Security: YooKassa does not sign webhook requests. We verify each payment
+ * by fetching it directly from the YooKassa API before acting on the event.
  */
 
 const VALID_EVENTS = [
@@ -17,23 +18,23 @@ const VALID_EVENTS = [
   'refund.succeeded',
 ] as const;
 
-/** Verify webhook signature from YooKassa (HMAC-SHA256) */
-function verifyWebhookSignature(rawBody: string, signature: string | null): boolean {
+/** Fetch and verify payment status directly from YooKassa API */
+async function fetchPaymentFromApi(paymentId: string): Promise<Record<string, unknown> | null> {
+  const shopId = process.env.YOOKASSA_SHOP_ID;
   const secretKey = process.env.YOOKASSA_SECRET_KEY;
-  if (!secretKey) return false;
-  if (!signature) return false;
+  if (!shopId || !secretKey) return null;
 
-  const expected = createHmac('sha256', secretKey)
-    .update(rawBody)
-    .digest('hex');
-
-  // Timing-safe comparison
-  if (expected.length !== signature.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < expected.length; i++) {
-    mismatch |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
+  try {
+    const response = await fetch(`https://api.yookassa.ru/v3/payments/${paymentId}`, {
+      headers: {
+        'Authorization': 'Basic ' + btoa(`${shopId}:${secretKey}`),
+      },
+    });
+    if (!response.ok) return null;
+    return response.json() as Promise<Record<string, unknown>>;
+  } catch {
+    return null;
   }
-  return mismatch === 0;
 }
 
 /** Simple IP-based rate limiting for webhook endpoint */
@@ -61,40 +62,51 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const rawBody = await request.text();
+    const body = await request.json() as Record<string, unknown>;
+    const event = body.event as string | undefined;
+    const payload = body.object as Record<string, unknown> | undefined;
 
-    // Verify webhook signature (skip only if YOOKASSA_SKIP_SIGNATURE_CHECK=true for local testing)
-    if (process.env.YOOKASSA_SKIP_SIGNATURE_CHECK !== 'true') {
-      const signature = request.headers.get('X-Yookassa-Signature');
-      if (!verifyWebhookSignature(rawBody, signature)) {
-        console.warn('[WEBHOOK] Invalid signature, rejecting');
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
-      }
-    }
-
-    const body = JSON.parse(rawBody);
-    const event = body.event;
-    const payment = body.object;
-
-    if (!event || !payment) {
+    if (!event || !payload) {
       return NextResponse.json({ error: 'Invalid webhook payload' }, { status: 400 });
     }
 
     // Validate event type
-    if (!VALID_EVENTS.includes(event)) {
+    if (!VALID_EVENTS.includes(event as typeof VALID_EVENTS[number])) {
       console.warn(`[WEBHOOK] Unknown event type: ${event}`);
       return NextResponse.json({ ok: true });
     }
 
-    const orderId = payment.metadata?.orderId;
-    if (!orderId || typeof orderId !== 'string' || orderId.length > 50) {
-      console.warn('[WEBHOOK] Invalid orderId in metadata:', payment.id);
+    const paymentId = payload.id as string | undefined;
+    const orderId = (payload.metadata as Record<string, unknown> | undefined)?.orderId as string | undefined;
+
+    if (!paymentId || !orderId || typeof orderId !== 'string' || orderId.length > 50) {
+      console.warn('[WEBHOOK] Invalid payload structure:', paymentId, orderId);
       return NextResponse.json({ ok: true });
     }
 
-    console.log(`[WEBHOOK] ${event}: order=${orderId}, payment=${payment.id}, status=${payment.status}`);
+    console.log(`[WEBHOOK] ${event}: order=${orderId}, payment=${paymentId}`);
 
-    if (event === 'payment.succeeded') {
+    // Verify payment status by fetching directly from YooKassa API
+    // This is the standard security pattern since YooKassa does not sign webhook requests
+    const verifiedPayment = await fetchPaymentFromApi(paymentId);
+    if (!verifiedPayment) {
+      console.error(`[WEBHOOK] Failed to verify payment ${paymentId} with YooKassa API`);
+      // Return 500 so YooKassa retries
+      return NextResponse.json({ error: 'Payment verification failed' }, { status: 500 });
+    }
+
+    const verifiedStatus = verifiedPayment.status as string;
+    const verifiedMetaOrderId = (verifiedPayment.metadata as Record<string, unknown> | undefined)?.orderId as string | undefined;
+
+    // Double-check orderId matches between webhook payload and verified payment
+    if (verifiedMetaOrderId !== orderId) {
+      console.error(`[WEBHOOK] OrderId mismatch: webhook=${orderId}, api=${verifiedMetaOrderId}`);
+      return NextResponse.json({ ok: true });
+    }
+
+    console.log(`[WEBHOOK] Verified payment ${paymentId}: status=${verifiedStatus}`);
+
+    if (event === 'payment.succeeded' && verifiedStatus === 'succeeded') {
       const order = await getOrder(orderId);
       if (!order) {
         console.warn(`[WEBHOOK] Order not found: ${orderId}`);
@@ -108,7 +120,8 @@ export async function POST(request: NextRequest) {
       }
 
       // Verify payment amount matches order price
-      const receivedAmount = parseFloat(payment.amount?.value || '0');
+      const verifiedAmount = verifiedPayment.amount as { value: string } | undefined;
+      const receivedAmount = parseFloat(verifiedAmount?.value || '0');
       if (Math.abs(receivedAmount - order.price) > 0.01) {
         console.error(`[WEBHOOK] Amount mismatch: order=${orderId}, expected=${order.price}, received=${receivedAmount}`);
         return NextResponse.json({ ok: true });
@@ -118,10 +131,9 @@ export async function POST(request: NextRequest) {
       order.status = 'in_progress';
       await saveOrder(order);
 
-      // Update payment-specific fields (not in saveOrder)
       await import('@/lib/db').then(({ query: q }) =>
         q(`UPDATE orders SET payment_status = 'succeeded', paid_at = NOW(), payment_id = $1 WHERE id = $2`,
-          [payment.id, orderId])
+          [paymentId, orderId])
       ).catch(err => console.error('[WEBHOOK] Failed to update payment fields:', err));
 
       // Send confirmation emails (fire-and-forget)
@@ -149,7 +161,7 @@ export async function POST(request: NextRequest) {
       console.log(`[WEBHOOK] Order ${orderId} marked as in_progress, emails sent`);
     }
 
-    if (event === 'payment.canceled') {
+    if (event === 'payment.canceled' && verifiedStatus === 'canceled') {
       const order = await getOrder(orderId);
       if (order && order.status === 'new') {
         order.status = 'cancelled';

@@ -39,13 +39,12 @@ export async function POST(
   }
 
   const order = claimResult.rows[0];
-  const email = user.email || `${user.phone}@sms.placeholder`;
-
   try {
     const payment = await createPayment({
       orderId: id,
       productType: order.product_type as ProductType,
-      email,
+      email: user.email || '',
+      phone: user.phone,
       returnUrl: `https://shtrafometer.ru/cabinet/orders/${id}`,
     });
 

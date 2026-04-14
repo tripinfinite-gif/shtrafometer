@@ -40,6 +40,7 @@ export async function createPayment(opts: {
   orderId: string;
   productType: ProductType;
   email: string;
+  phone?: string;
   returnUrl?: string;
 }): Promise<{ paymentId: string; confirmationUrl: string }> {
   const { shopId, secretKey } = getCredentials();
@@ -79,7 +80,9 @@ export async function createPayment(opts: {
         productType: opts.productType,
       },
       receipt: {
-        customer: { email: opts.email },
+        customer: opts.email
+          ? { email: opts.email }
+          : { phone: opts.phone },
         items: [
           {
             description,
@@ -88,7 +91,9 @@ export async function createPayment(opts: {
               value: price.toFixed(2),
               currency: 'RUB',
             },
-            vat_code: 1,
+            vat_code: 1,           // без НДС (УСН)
+            payment_subject: 'service',
+            payment_mode: 'full_payment',
           },
         ],
       },
