@@ -5,6 +5,8 @@ import { posts } from "@/content/blog";
 import BlogArticle from "@/components/blog/BlogArticle";
 import BlogCard from "@/components/blog/BlogCard";
 
+export const revalidate = 3600;
+
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
@@ -39,6 +41,11 @@ export default async function BlogPostPage({ params }: PageProps) {
   const { slug } = await params;
   const post = posts.find((p) => p.slug === slug);
   if (!post) notFound();
+
+  // Block access to future posts
+  const nowMsk = new Date(Date.now() + 3 * 60 * 60 * 1000);
+  const today = nowMsk.toISOString().split("T")[0];
+  if (post.publishedAt > today) notFound();
 
   // Related posts: same category, exclude current, max 3
   let related = posts.filter(

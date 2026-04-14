@@ -81,6 +81,7 @@ src/
 - **Хранилище**: PostgreSQL 16 через pg driver, автомиграция при первом запуске.
 - **Личный кабинет**: SMS OTP (SMS.ru) → серверные сессии в PostgreSQL (30 дней). Пользователь может проверять несколько сайтов, заказывать несколько услуг для каждого. Каждый заказ — отдельная оплата через YooKassa.
 - **Деплой**: Docker Compose на Beget VPS. Ручной деплой: `cd /home/deploy/shtrafometer/repo && git pull origin main && cd .. && docker compose up -d --build app`. Coolify dashboard: http://109.69.18.80:8000 (только для Traefik-прокси и infolog24).
+- **Автодеплой (cron)**: на VPS настроен `crontab` пользователя `deploy` — `0 6 * * *` (09:00 МСК): git pull + docker compose rebuild. Используется для ежедневной публикации статей блога. Лог: `/home/deploy/shtrafometer/cron.log`.
 - **Аналитика**: Яндекс.Метрика (счётчик 108525306) в layout.tsx. 7 целей: free_check, order_form_open, order_submit, payment_success, user_register, user_login, pdf_download. Хелпер `ym_goal()` в клиентских компонентах.
 
 ## Законы и проверки
@@ -102,9 +103,9 @@ src/
 **Технический справочник для агентов: `CODE.md`** (создан 2026-04-14)
 Содержит: стек, структуру файлов, что уже реализовано в коде, таблицу env-переменных, команду деплоя.
 
-## Текущий статус (v1.8, 14 апр 2026)
+## Текущий статус (v2.1-blog, 14 апр 2026)
 
-Сервис полностью рабочий на `https://shtrafometer.ru`. Последнее: SEO-оптимизация.
+Сервис полностью рабочий на `https://shtrafometer.ru`. Последнее: блог 50 статей + ежедневный постинг.
 
 ### Что реализовано в коде (актуально на 2026-04-14)
 - ✅ Проверка сайтов: 8 модулей, 35+ проверок, расчёт штрафов
@@ -112,8 +113,13 @@ src/
 - ✅ Личный кабинет: SMS OTP (SMS.ru), серверные сессии PostgreSQL
 - ✅ Оплата: YooKassa API (ожидает активацию аккаунта)
 - ✅ Аналитика: Яндекс.Метрика счётчик 108525306, 7 целей
-- ✅ Блог: 18 статей с реальными кейсами штрафов
-- ✅ SEO: JSON-LD (Organization, WebApplication, Article), Yandex Webmaster верификация, canonical URLs, sitemap с реальными датами, robots для AI-краулеров
+- ✅ Блог: 50 статей (30 опубликованы, 20 выходят по 1/день до 2026-05-15)
+  - Фильтрация по дате (ISR revalidate=3600): `src/app/blog/page.tsx`, `[slug]/page.tsx`
+  - Обложки PNG 1200×630 для всех постов: `public/blog/*.png`
+  - Динамический OG-маршрут: `src/app/api/og/blog/[slug]/route.tsx`
+  - Крон на VPS: `0 6 * * *` (9:00 МСК) — git pull + docker compose rebuild
+  - Лог крона: `/home/deploy/shtrafometer/cron.log`
+- ✅ SEO: JSON-LD (Organization, WebApplication, Article), Yandex Webmaster верификация, canonical URLs, sitemap с реальными датами (только опубликованные посты), robots для AI-краулеров
 
 ### Pending (нужны ручные действия)
 - ❗ Яндекс.Вебмастер: добавить `NEXT_PUBLIC_YANDEX_WEBMASTER_KEY` в `.env.local` на сервере → задеплоить → верифицировать (файл `/public/yandex_6ee371817dc2e30f.html` уже задеплоен, ждёт подтверждения в Вебмастере)

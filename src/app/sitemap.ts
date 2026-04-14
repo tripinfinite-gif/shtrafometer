@@ -13,12 +13,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/requisites`, lastModified: new Date('2026-03-01'), changeFrequency: 'yearly', priority: 0.3 },
   ]
 
-  const blogPages: MetadataRoute.Sitemap = posts.map(post => ({
-    url: `${BASE_URL}/blog/${post.slug}`,
-    lastModified: new Date(post.publishedAt),
-    changeFrequency: 'monthly' as const,
-    priority: 0.8,
-  }))
+  const nowMsk = new Date(Date.now() + 3 * 60 * 60 * 1000);
+  const today = nowMsk.toISOString().split("T")[0];
+
+  const blogPages: MetadataRoute.Sitemap = posts
+    .filter(post => post.publishedAt <= today)
+    .sort((a, b) => (a.publishedAt > b.publishedAt ? -1 : 1))
+    .map(post => ({
+      url: `${BASE_URL}/blog/${post.slug}`,
+      lastModified: new Date(post.publishedAt),
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    }))
 
   return [...staticPages, ...blogPages]
 }
