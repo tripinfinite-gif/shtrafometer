@@ -260,6 +260,16 @@ export default function Home() {
       } else {
         setResult(data);
         setAppState("success");
+        // Persist so a post-registration cabinet arrival can attach it to the new account
+        if (typeof window !== "undefined") {
+          try {
+            const domain = (data?.url || targetUrl).replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
+            localStorage.setItem(
+              "shtraf_last_check",
+              JSON.stringify({ domain, result: data, ts: Date.now() }),
+            );
+          } catch {}
+        }
       }
     } catch {
       setErrorMsg("Не удалось выполнить запрос. Проверьте подключение к интернету.");

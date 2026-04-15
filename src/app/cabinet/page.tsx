@@ -1,8 +1,9 @@
 import { getCurrentUser } from '@/lib/user-auth';
 import { redirect } from 'next/navigation';
 import { query } from '@/lib/db';
-import { addUserSite, extractDomain } from '@/lib/user-storage';
+import { addUserSite, getUserSite, extractDomain } from '@/lib/user-storage';
 import Link from 'next/link';
+import AttachPreRegisterCheck from './attach-pre-register-check';
 
 export default async function CabinetDashboard({
   searchParams,
@@ -15,11 +16,18 @@ export default async function CabinetDashboard({
   // If arriving from a pre-registration check flow (?site=example.ru),
   // automatically attach the site to this account so it shows up below.
   const { site: rawSite } = await searchParams;
+  let pendingAttachDomain: string | null = null;
   if (rawSite) {
     const domain = extractDomain(rawSite);
     if (domain && /^[a-zа-я0-9.-]+\.[a-zа-я]{2,}$/i.test(domain)) {
       try {
         await addUserSite(user.id, domain);
+        // If the site has no check yet, let the client component attach the
+        // localStorage result (or trigger a fresh check) and refresh.
+        const existing = await getUserSite(user.id, domain);
+        if (existing && !existing.lastCheckAt) {
+          pendingAttachDomain = domain;
+        }
       } catch (err) {
         console.error('[CABINET] Failed to auto-attach site:', err);
       }
@@ -59,6 +67,9 @@ export default async function CabinetDashboard({
             : 'Добавьте сайт для проверки на соответствие законам'}
         </p>
       </div>
+
+      {/* Auto-attach pre-registration check result (runs client-side on mount) */}
+      {pendingAttachDomain && <AttachPreRegisterCheck domain={pendingAttachDomain} />}
 
       {/* Email banner */}
       {!user.email && <EmailBanner />}
