@@ -156,7 +156,16 @@ export default function RegisterPage() {
   const inputValid = method === 'email' ? emailValid : phoneValid;
   const contactDisplay = method === 'email' ? email : phone;
 
-  const oauthReturnUrl = encodeURIComponent(returnUrl);
+  // Carry the pre-registration site through OAuth so the callback lands on /cabinet?site=…
+  const oauthReturnPath = (defaultSite || defaultProduct)
+    ? (() => {
+        const u = new URL(returnUrl, 'https://shtrafometer.ru');
+        if (defaultSite) u.searchParams.set('site', defaultSite);
+        if (defaultProduct) u.searchParams.set('product', defaultProduct);
+        return u.pathname + u.search;
+      })()
+    : returnUrl;
+  const oauthReturnUrl = encodeURIComponent(oauthReturnPath);
 
   return (
     <div>

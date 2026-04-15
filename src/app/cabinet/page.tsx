@@ -1,11 +1,30 @@
 import { getCurrentUser } from '@/lib/user-auth';
 import { redirect } from 'next/navigation';
 import { query } from '@/lib/db';
+import { addUserSite, extractDomain } from '@/lib/user-storage';
 import Link from 'next/link';
 
-export default async function CabinetDashboard() {
+export default async function CabinetDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ site?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect('/auth/login');
+
+  // If arriving from a pre-registration check flow (?site=example.ru),
+  // automatically attach the site to this account so it shows up below.
+  const { site: rawSite } = await searchParams;
+  if (rawSite) {
+    const domain = extractDomain(rawSite);
+    if (domain && /^[a-zа-я0-9.-]+\.[a-zа-я]{2,}$/i.test(domain)) {
+      try {
+        await addUserSite(user.id, domain);
+      } catch (err) {
+        console.error('[CABINET] Failed to auto-attach site:', err);
+      }
+    }
+  }
 
   // Fetch user's sites
   const sitesResult = await query<Record<string, unknown>>(
@@ -159,7 +178,7 @@ function EmailBanner() {
         <p className="text-sm font-medium text-amber-800">Укажите email</p>
         <p className="text-xs text-amber-600 mt-0.5">Чтобы получать отчёты, чеки и уведомления о новых нарушениях</p>
       </div>
-      <Link href="/cabinet/settings" className="shrink-0 text-xs font-medium text-amber-700 hover:text-amber-900 underline">
+      <Link href="/cabinet/settings?focus=email" className="shrink-0 text-xs font-medium text-amber-700 hover:text-amber-900 underline">
         Добавить
       </Link>
     </div>

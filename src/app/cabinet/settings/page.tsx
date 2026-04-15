@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 interface UserProfile {
   id: string;
@@ -11,7 +12,9 @@ interface UserProfile {
   companyInn: string | null;
 }
 
-export default function SettingsPage() {
+function SettingsPageInner() {
+  const searchParams = useSearchParams();
+  const focusField = searchParams.get('focus');
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -20,6 +23,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
+  const [emailHighlight, setEmailHighlight] = useState(false);
 
   useEffect(() => {
     fetch('/api/cabinet/me')
@@ -34,6 +39,18 @@ export default function SettingsPage() {
         }
       });
   }, []);
+
+  // Focus the email input when arriving from the "Add email" banner
+  useEffect(() => {
+    if (focusField !== 'email' || !profile) return;
+    const el = emailInputRef.current;
+    if (!el) return;
+    el.focus();
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setEmailHighlight(true);
+    const t = setTimeout(() => setEmailHighlight(false), 2500);
+    return () => clearTimeout(t);
+  }, [focusField, profile]);
 
   async function handleSave() {
     setError('');
@@ -99,12 +116,15 @@ export default function SettingsPage() {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
           <input
+            ref={emailInputRef}
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             placeholder="example@mail.ru"
-            className="w-full h-11 px-4 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm
-                       placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6C5CE7] focus:border-transparent"
+            className={`w-full h-11 px-4 rounded-xl border bg-white text-gray-900 text-sm
+                       placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6C5CE7] focus:border-transparent
+                       transition-all duration-300
+                       ${emailHighlight ? 'border-[#6C5CE7] ring-2 ring-[#6C5CE7]/30 shadow-[0_0_0_4px_rgba(108,92,231,0.15)]' : 'border-gray-200'}`}
           />
           <p className="text-xs text-gray-400 mt-1">Для получения отчётов, чеков и уведомлений</p>
         </div>
@@ -154,5 +174,13 @@ export default function SettingsPage() {
         {saved && <span className="text-sm text-green-600">Сохранено</span>}
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="text-gray-400 text-center py-12">Загрузка...</div>}>
+      <SettingsPageInner />
+    </Suspense>
   );
 }
