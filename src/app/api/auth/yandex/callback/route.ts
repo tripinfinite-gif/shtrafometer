@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureSchema } from '@/lib/db';
 import { findOrCreateOAuthUser, createUserSession, setSessionCookie } from '@/lib/user-auth';
+import { publicUrl } from '@/lib/base-url';
 
 // ─── GET /api/auth/yandex/callback ────────────────────────────────────
 
@@ -13,7 +14,7 @@ export async function GET(request: NextRequest) {
   const loginUrl = '/auth/login?error=oauth_failed';
 
   if (error || !code || !state) {
-    return NextResponse.redirect(new URL(loginUrl, request.url));
+    return NextResponse.redirect(publicUrl(request, loginUrl));
   }
 
   // Validate state
@@ -22,11 +23,11 @@ export async function GET(request: NextRequest) {
   try {
     const stored = JSON.parse(stateCookie || '{}');
     if (stored.state !== state) {
-      return NextResponse.redirect(new URL(loginUrl, request.url));
+      return NextResponse.redirect(publicUrl(request, loginUrl));
     }
     returnUrl = stored.returnUrl || '/cabinet';
   } catch {
-    return NextResponse.redirect(new URL(loginUrl, request.url));
+    return NextResponse.redirect(publicUrl(request, loginUrl));
   }
 
   const clientId = process.env.YANDEX_CLIENT_ID!;
@@ -50,12 +51,12 @@ export async function GET(request: NextRequest) {
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok || !tokenData.access_token) {
       console.error('[Yandex OAuth] Token exchange failed:', tokenData);
-      return NextResponse.redirect(new URL(loginUrl, request.url));
+      return NextResponse.redirect(publicUrl(request, loginUrl));
     }
     accessToken = tokenData.access_token;
   } catch (err) {
     console.error('[Yandex OAuth] Token request error:', err);
-    return NextResponse.redirect(new URL(loginUrl, request.url));
+    return NextResponse.redirect(publicUrl(request, loginUrl));
   }
 
   // Get user info
@@ -69,14 +70,14 @@ export async function GET(request: NextRequest) {
     const userData = await userRes.json();
     if (!userRes.ok || !userData.id) {
       console.error('[Yandex OAuth] User info failed:', userData);
-      return NextResponse.redirect(new URL(loginUrl, request.url));
+      return NextResponse.redirect(publicUrl(request, loginUrl));
     }
     providerId = String(userData.id);
     name = userData.real_name || userData.display_name || userData.login || 'Пользователь';
     email = userData.default_email || undefined;
   } catch (err) {
     console.error('[Yandex OAuth] User info error:', err);
-    return NextResponse.redirect(new URL(loginUrl, request.url));
+    return NextResponse.redirect(publicUrl(request, loginUrl));
   }
 
   await ensureSchema();
@@ -88,7 +89,7 @@ export async function GET(request: NextRequest) {
   const sessionId = await createUserSession(user.id, ip, userAgent);
   const cookie = setSessionCookie(sessionId);
 
-  const response = NextResponse.redirect(new URL(returnUrl, request.url));
+  const response = NextResponse.redirect(publicUrl(request, returnUrl));
   response.cookies.set(cookie.name, cookie.value, cookie.options as Parameters<typeof response.cookies.set>[2]);
   // Clear state cookie
   response.cookies.set('oauth_state_yandex', '', { maxAge: 0, path: '/' });

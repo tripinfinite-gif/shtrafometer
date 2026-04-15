@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ensureSchema } from '@/lib/db';
 import { findOrCreateOAuthUser, createUserSession, setSessionCookie } from '@/lib/user-auth';
+import { publicUrl } from '@/lib/base-url';
 
 // ─── GET /api/auth/vk/callback ────────────────────────────────────────
 
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
   const loginUrl = '/auth/login?error=oauth_failed';
 
   if (error || !code || !state) {
-    return NextResponse.redirect(new URL(loginUrl, request.url));
+    return NextResponse.redirect(publicUrl(request, loginUrl));
   }
 
   // Validate state
@@ -24,15 +25,15 @@ export async function GET(request: NextRequest) {
   try {
     const stored = JSON.parse(stateCookie || '{}');
     if (stored.state !== state) {
-      return NextResponse.redirect(new URL(loginUrl, request.url));
+      return NextResponse.redirect(publicUrl(request, loginUrl));
     }
     returnUrl = stored.returnUrl || '/cabinet';
   } catch {
-    return NextResponse.redirect(new URL(loginUrl, request.url));
+    return NextResponse.redirect(publicUrl(request, loginUrl));
   }
 
   if (!codeVerifier) {
-    return NextResponse.redirect(new URL(loginUrl, request.url));
+    return NextResponse.redirect(publicUrl(request, loginUrl));
   }
 
   const clientId = process.env.VK_CLIENT_ID!;
@@ -62,14 +63,14 @@ export async function GET(request: NextRequest) {
     const tokenData = await tokenRes.json();
     if (!tokenRes.ok || !tokenData.access_token) {
       console.error('[VK OAuth] Token exchange failed:', tokenData);
-      return NextResponse.redirect(new URL(loginUrl, request.url));
+      return NextResponse.redirect(publicUrl(request, loginUrl));
     }
     accessToken = tokenData.access_token;
     userId = String(tokenData.user_id);
     email = tokenData.email || undefined;
   } catch (err) {
     console.error('[VK OAuth] Token request error:', err);
-    return NextResponse.redirect(new URL(loginUrl, request.url));
+    return NextResponse.redirect(publicUrl(request, loginUrl));
   }
 
   // Get user info
@@ -100,7 +101,7 @@ export async function GET(request: NextRequest) {
   const sessionId = await createUserSession(user.id, ip, userAgent);
   const cookie = setSessionCookie(sessionId);
 
-  const response = NextResponse.redirect(new URL(returnUrl, request.url));
+  const response = NextResponse.redirect(publicUrl(request, returnUrl));
   response.cookies.set(cookie.name, cookie.value, cookie.options as Parameters<typeof response.cookies.set>[2]);
   // Clear OAuth cookies
   response.cookies.set('oauth_state_vk', '', { maxAge: 0, path: '/' });

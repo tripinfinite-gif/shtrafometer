@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 import { isValidUserSession } from './lib/user-auth';
+import { publicUrl } from './lib/base-url';
 
 // ─── Admin auth (JWT) ───────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ export async function proxy(request: NextRequest) {
       if (isAdminApi) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      return NextResponse.redirect(new URL('/admin/login', request.url));
+      return NextResponse.redirect(publicUrl(request, '/admin/login'));
     }
 
     const valid = await verifyAdminToken(token);
@@ -49,7 +50,7 @@ export async function proxy(request: NextRequest) {
       if (isAdminApi) {
         return NextResponse.json({ error: 'Session expired' }, { status: 401 });
       }
-      const response = NextResponse.redirect(new URL('/admin/login', request.url));
+      const response = NextResponse.redirect(publicUrl(request, '/admin/login'));
       response.cookies.delete(ADMIN_SESSION_COOKIE);
       return response;
     }
@@ -68,7 +69,7 @@ export async function proxy(request: NextRequest) {
       if (isCabinetApi) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      return NextResponse.redirect(new URL('/auth/login', request.url));
+      return NextResponse.redirect(publicUrl(request, '/auth/login'));
     }
 
     const valid = await isValidUserSession(sessionToken);
@@ -76,7 +77,7 @@ export async function proxy(request: NextRequest) {
       if (isCabinetApi) {
         return NextResponse.json({ error: 'Session expired' }, { status: 401 });
       }
-      const response = NextResponse.redirect(new URL('/auth/login', request.url));
+      const response = NextResponse.redirect(publicUrl(request, '/auth/login'));
       response.cookies.delete(USER_SESSION_COOKIE);
       return response;
     }
