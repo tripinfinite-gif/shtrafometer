@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOrder, saveOrder } from '@/lib/storage';
-import { sendOrderConfirmation, sendAdminNotification } from '@/lib/email';
+import { sendOrderConfirmation, sendAdminNotification, sendEmailGateReport } from '@/lib/email';
+import { generateReport } from '@/lib/pdf-report';
+import { analyzeUrl } from '@/checks/engine';
 
 /**
  * YooKassa webhook handler.
@@ -159,6 +161,47 @@ export async function POST(request: NextRequest) {
       }
 
       console.log(`[WEBHOOK] Order ${orderId} marked as in_progress, emails sent`);
+
+      // Auto-generate and send PDF report for 'report' product type
+      if (order.productType === 'report' && order.email) {
+        (async () => {
+          try {
+            // Use stored checkResult or re-run the check
+            let checkResult = order.checkResult;
+            if (!checkResult) {
+              console.log(`[WEBHOOK] No stored checkResult for order ${orderId}, re-running check on ${order.siteUrl}`);
+              checkResult = await analyzeUrl(order.siteUrl);
+            }
+
+            const pdfBuffer = await generateReport(checkResult, {
+              mode: 'full',
+              companyName: order.name,
+              contactEmail: order.email,
+            });
+
+            const domain = order.domain || order.siteUrl.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+
+            await sendEmailGateReport(order.email, {
+              total: checkResult.stats.violations,
+              totalMaxFine: checkResult.totalMaxFine,
+              siteUrl: checkResult.url,
+              pdfBuffer: Buffer.from(pdfBuffer),
+              domain,
+            });
+
+            // Mark order as completed
+            order.status = 'completed';
+            await saveOrder(order);
+            await import('@/lib/db').then(({ query: q }) =>
+              q(`UPDATE orders SET status = 'completed' WHERE id = $1`, [orderId])
+            );
+
+            console.log(`[WEBHOOK] PDF report sent to ${order.email} for order ${orderId}`);
+          } catch (err) {
+            console.error(`[WEBHOOK] PDF generation/send failed for order ${orderId}:`, err);
+          }
+        })();
+      }
     }
 
     if (event === 'payment.canceled' && verifiedStatus === 'canceled') {
