@@ -98,51 +98,53 @@ async function genQR(url: string): Promise<Buffer | null> {
 // ─── Stamp & Signature ─────────────────────────────────────────────
 
 function drawStamp(doc: PDFKit.PDFDocument, cx: number, cy: number, r: number) {
-  // Realistic stamp: slightly rotated, retouched opacity, real size
-  const stampR = Math.max(r, 38); // minimum 38pt for readability (~27mm diameter
+  // Realistic Russian corporate stamp (ООО «Инворк», Санкт-Петербург)
+  const R = Math.max(r, 42); // ~30mm real stamp size
   doc.save();
-  // Slight random rotation for realism
-  doc.translate(cx, cy).rotate(-7).translate(-cx, -cy);
-  doc.opacity(0.55);
+  doc.translate(cx, cy).rotate(-11).translate(-cx, -cy); // slight tilt
 
-  // Outer double ring
-  doc.circle(cx, cy, stampR).lineWidth(2.2).strokeColor(C.stamp).stroke();
-  doc.circle(cx, cy, stampR - 3).lineWidth(0.6).strokeColor(C.stamp).stroke();
-  // Inner ring (separates text from center logo)
-  doc.circle(cx, cy, stampR - 20).lineWidth(0.6).strokeColor(C.stamp).stroke();
+  // === Wear effect: slightly uneven opacity across stamp ===
+  doc.opacity(0.52);
 
-  // Center: Shtrafometer logo (shield icon instead of star)
-  const lx = cx, ly = cy;
-  const s = stampR * 0.28; // scale relative to stamp size
+  // === Outer border: thick + thin ring (classic double-ring) ===
+  doc.circle(cx, cy, R).lineWidth(2.5).strokeColor(C.stamp).stroke();
+  doc.circle(cx, cy, R - 2.5).lineWidth(0.4).strokeColor(C.stamp).stroke();
+
+  // === Inner circle: separates arc text from center block ===
+  doc.circle(cx, cy, R - 19).lineWidth(0.5).strokeColor(C.stamp).stroke();
+
+  // === Top arc: «ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ» ===
+  arcText(doc, '★ ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ ★', cx, cy, R - 10, -0.82 * Math.PI, 0.82 * Math.PI, 4);
+
+  // === Bottom arc: city ===
+  arcText(doc, '★ Г. САНКТ-ПЕТЕРБУРГ ★', cx, cy, R - 10, 1.18 * Math.PI, 0.82 * Math.PI, 4.5, true);
+
+  // === Center block: company name + INN/OGRN ===
   doc.fillColor(C.stamp);
-  // Shield path
-  doc.save().translate(lx - s, ly - s * 1.1);
-  doc.moveTo(s, 0)
-    .lineTo(s * 0.15, s * 0.45)
-    .lineTo(s * 0.15, s * 1.2)
-    .bezierCurveTo(s * 0.15, s * 1.7, s * 0.6, s * 2.0, s, s * 2.2)
-    .bezierCurveTo(s * 1.4, s * 2.0, s * 1.85, s * 1.7, s * 1.85, s * 1.2)
-    .lineTo(s * 1.85, s * 0.45)
-    .closePath().fill();
-  // Checkmark inside shield
-  doc.strokeColor(C.white).lineWidth(1.5).opacity(0.9);
-  doc.moveTo(s * 0.55, s * 1.1).lineTo(s * 0.85, s * 1.45).lineTo(s * 1.45, s * 0.7).stroke();
-  doc.restore();
-  doc.opacity(0.55);
+  doc.font('B').fontSize(6).text('ИНВОРК', cx - 22, cy - 12, { width: 44, align: 'center', lineBreak: false });
+  doc.font('R').fontSize(3.5).text(LEGAL_INN, cx - 28, cy + 0, { width: 56, align: 'center', lineBreak: false });
+  doc.font('R').fontSize(3.5).text(LEGAL_OGRN, cx - 28, cy + 6, { width: 56, align: 'center', lineBreak: false });
 
-  // Arc text: company name on top
-  arcText(doc, LEGAL_NAME, cx, cy, stampR - 12, -0.72 * Math.PI, 0.72 * Math.PI, 5.5);
-  // Arc text: INN * OGRN on bottom
-  arcText(doc, `${LEGAL_INN} · ${LEGAL_OGRN}`, cx, cy, stampR - 12, 1.22 * Math.PI, 0.78 * Math.PI, 4.5, true);
+  // === Decorative separators (horizontal lines in center) ===
+  doc.strokeColor(C.stamp).lineWidth(0.3);
+  doc.moveTo(cx - 16, cy - 3).lineTo(cx + 16, cy - 3).stroke();
+  doc.moveTo(cx - 16, cy + 12).lineTo(cx + 16, cy + 12).stroke();
 
-  // Subtle noise lines for retouched effect
-  doc.opacity(0.15).strokeColor(C.stamp).lineWidth(0.3);
-  for (let i = 0; i < 6; i++) {
+  // === Wear/ink artifacts: partial dots and smudges ===
+  doc.opacity(0.2);
+  for (let i = 0; i < 12; i++) {
     const a = Math.random() * Math.PI * 2;
-    const d = stampR * (0.3 + Math.random() * 0.5);
-    doc.moveTo(cx + d * Math.cos(a), cy + d * Math.sin(a))
-      .lineTo(cx + d * Math.cos(a) + 8, cy + d * Math.sin(a) + 3).stroke();
+    const d = R * (0.15 + Math.random() * 0.8);
+    const x = cx + d * Math.cos(a), yy = cy + d * Math.sin(a);
+    doc.circle(x, yy, 0.3 + Math.random() * 0.8).fill(C.stamp);
   }
+  // Partial ring break (ink didn't print evenly)
+  doc.opacity(0.08);
+  const breakAngle = 0.4 + Math.random() * 0.5;
+  doc.save();
+  doc.translate(cx, cy).rotate(breakAngle * 180 / Math.PI);
+  doc.rect(-3, -R - 2, 6, 4).fill('#FFFFFF');
+  doc.restore();
 
   doc.restore();
 }
@@ -162,11 +164,45 @@ function arcText(doc: PDFKit.PDFDocument, text: string, cx: number, cy: number, 
 }
 
 function drawSignature(doc: PDFKit.PDFDocument, x: number, y: number) {
-  doc.save().strokeColor(C.primaryDark).lineWidth(1).opacity(0.75);
-  doc.moveTo(x, y + 10).bezierCurveTo(x + 10, y - 2, x + 20, y + 16, x + 30, y + 4)
-    .bezierCurveTo(x + 40, y - 4, x + 50, y + 12, x + 60, y + 2)
-    .bezierCurveTo(x + 70, y - 4, x + 80, y + 10, x + 90, y + 6).stroke();
-  doc.moveTo(x + 15, y + 16).bezierCurveTo(x + 35, y + 20, x + 65, y + 14, x + 85, y + 18).stroke();
+  doc.save().strokeColor('#2D1B69').lineWidth(0.9).opacity(0.8);
+
+  // Letter «Н» — bold initial stroke
+  doc.lineWidth(1.4);
+  doc.moveTo(x, y + 18)                             // left vertical stroke of Н
+    .lineTo(x + 2, y - 2)                            // up-stroke
+    .bezierCurveTo(x + 3, y - 5, x + 5, y - 4, x + 6, y - 2); // top serif
+  doc.stroke();
+  doc.moveTo(x + 3, y + 6)                           // horizontal bar of Н
+    .bezierCurveTo(x + 8, y + 5, x + 12, y + 4, x + 14, y + 5);
+  doc.stroke();
+  doc.moveTo(x + 13, y + 16)                         // right vertical of Н
+    .lineTo(x + 15, y - 1)
+    .bezierCurveTo(x + 16, y - 3, x + 18, y - 2, x + 20, y + 2);
+  doc.stroke();
+
+  // Flowing tail from Н — complex cursive motion
+  doc.lineWidth(0.9);
+  doc.moveTo(x + 20, y + 2)
+    .bezierCurveTo(x + 28, y + 14, x + 32, y - 6, x + 42, y + 4)   // first wave
+    .bezierCurveTo(x + 48, y + 10, x + 52, y - 4, x + 58, y + 6)   // second wave
+    .bezierCurveTo(x + 62, y + 12, x + 68, y - 2, x + 76, y + 5)   // third wave
+    .bezierCurveTo(x + 80, y + 8, x + 86, y + 1, x + 92, y + 3)    // trailing
+    .bezierCurveTo(x + 96, y + 4, x + 100, y + 7, x + 105, y + 2)  // fade out
+    .stroke();
+
+  // Decorative loop above (flourish, common in Russian signatures)
+  doc.lineWidth(0.6).opacity(0.6);
+  doc.moveTo(x + 35, y + 4)
+    .bezierCurveTo(x + 40, y - 10, x + 50, y - 12, x + 55, y - 4)  // loop up
+    .bezierCurveTo(x + 58, y + 0, x + 52, y + 4, x + 48, y + 2)    // loop down
+    .stroke();
+
+  // Underline stroke
+  doc.lineWidth(0.5).opacity(0.5);
+  doc.moveTo(x + 5, y + 20)
+    .bezierCurveTo(x + 30, y + 22, x + 70, y + 19, x + 100, y + 21)
+    .stroke();
+
   doc.restore();
 }
 
@@ -529,14 +565,14 @@ export async function generateReport(data: CheckResponse, options: ReportOptions
     doc.fillColor(C.primary).text('+7 (985) 131-33-23', { link: 'tel:+79851313323' });
 
     // ══════════════════════════════════════════════════════════════
-    // PAGE NUMBERS (all pages) — skip blank pages
+    // PAGE NUMBERS (all pages) — lineBreak:false prevents ghost pages
     // ══════════════════════════════════════════════════════════════
     const range = doc.bufferedPageRange();
     const totalPages = range.count;
     for (let i = 0; i < totalPages; i++) {
       doc.switchToPage(i);
       doc.fillColor(C.gray400).font('R').fontSize(7);
-      doc.text(`${LEGAL_NAME} | ${BRAND_URL} | Стр. ${i + 1} из ${totalPages}`, M.left, PAGE_H - 30, { width: CW, align: 'center' });
+      doc.text(`${LEGAL_NAME} | ${BRAND_URL} | Стр. ${i + 1} из ${totalPages}`, M.left, PAGE_H - 30, { width: CW, align: 'center', lineBreak: false });
     }
 
     doc.end();
