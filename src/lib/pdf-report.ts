@@ -98,23 +98,52 @@ async function genQR(url: string): Promise<Buffer | null> {
 // ─── Stamp & Signature ─────────────────────────────────────────────
 
 function drawStamp(doc: PDFKit.PDFDocument, cx: number, cy: number, r: number) {
-  doc.save().opacity(0.6);
-  doc.circle(cx, cy, r).lineWidth(2).strokeColor(C.stamp).stroke();
-  doc.circle(cx, cy, r - 4).lineWidth(0.8).strokeColor(C.stamp).stroke();
-  doc.circle(cx, cy, r - 18).lineWidth(0.8).strokeColor(C.stamp).stroke();
-  // Star
-  const pts = 5, oR = 8, iR = 4;
+  // Realistic stamp: slightly rotated, retouched opacity, real size
+  const stampR = Math.max(r, 38); // minimum 38pt for readability (~27mm diameter
+  doc.save();
+  // Slight random rotation for realism
+  doc.translate(cx, cy).rotate(-7).translate(-cx, -cy);
+  doc.opacity(0.55);
+
+  // Outer double ring
+  doc.circle(cx, cy, stampR).lineWidth(2.2).strokeColor(C.stamp).stroke();
+  doc.circle(cx, cy, stampR - 3).lineWidth(0.6).strokeColor(C.stamp).stroke();
+  // Inner ring (separates text from center logo)
+  doc.circle(cx, cy, stampR - 20).lineWidth(0.6).strokeColor(C.stamp).stroke();
+
+  // Center: Shtrafometer logo (shield icon instead of star)
+  const lx = cx, ly = cy;
+  const s = stampR * 0.28; // scale relative to stamp size
   doc.fillColor(C.stamp);
-  const step = Math.PI / pts;
-  doc.moveTo(cx, cy - oR);
-  for (let i = 1; i < 2 * pts; i++) {
-    const rad = i % 2 === 0 ? oR : iR;
-    doc.lineTo(cx + rad * Math.sin(i * step), cy - rad * Math.cos(i * step));
+  // Shield path
+  doc.save().translate(lx - s, ly - s * 1.1);
+  doc.moveTo(s, 0)
+    .lineTo(s * 0.15, s * 0.45)
+    .lineTo(s * 0.15, s * 1.2)
+    .bezierCurveTo(s * 0.15, s * 1.7, s * 0.6, s * 2.0, s, s * 2.2)
+    .bezierCurveTo(s * 1.4, s * 2.0, s * 1.85, s * 1.7, s * 1.85, s * 1.2)
+    .lineTo(s * 1.85, s * 0.45)
+    .closePath().fill();
+  // Checkmark inside shield
+  doc.strokeColor(C.white).lineWidth(1.5).opacity(0.9);
+  doc.moveTo(s * 0.55, s * 1.1).lineTo(s * 0.85, s * 1.45).lineTo(s * 1.45, s * 0.7).stroke();
+  doc.restore();
+  doc.opacity(0.55);
+
+  // Arc text: company name on top
+  arcText(doc, LEGAL_NAME, cx, cy, stampR - 12, -0.72 * Math.PI, 0.72 * Math.PI, 5.5);
+  // Arc text: INN * OGRN on bottom
+  arcText(doc, `${LEGAL_INN} · ${LEGAL_OGRN}`, cx, cy, stampR - 12, 1.22 * Math.PI, 0.78 * Math.PI, 4.5, true);
+
+  // Subtle noise lines for retouched effect
+  doc.opacity(0.15).strokeColor(C.stamp).lineWidth(0.3);
+  for (let i = 0; i < 6; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const d = stampR * (0.3 + Math.random() * 0.5);
+    doc.moveTo(cx + d * Math.cos(a), cy + d * Math.sin(a))
+      .lineTo(cx + d * Math.cos(a) + 8, cy + d * Math.sin(a) + 3).stroke();
   }
-  doc.closePath().fill();
-  // Arc text
-  arcText(doc, LEGAL_NAME, cx, cy, r - 11, -0.75 * Math.PI, 0.75 * Math.PI, 6);
-  arcText(doc, `${LEGAL_INN}*${LEGAL_OGRN}`, cx, cy, r - 11, 1.25 * Math.PI, 0.75 * Math.PI, 5, true);
+
   doc.restore();
 }
 
@@ -421,9 +450,10 @@ export async function generateReport(data: CheckResponse, options: ReportOptions
     }
 
     // ══════════════════════════════════════════════════════════════
-    // FOOTER: stamp + signature (last page only)
+    // FOOTER: stamp + signature + upsell (last page)
     // ══════════════════════════════════════════════════════════════
-    ensureSpace(90);
+    // Need ~280pt for signature + stamp + upsell block
+    ensureSpace(280);
     y += 10;
 
     // Divider
@@ -443,13 +473,66 @@ export async function generateReport(data: CheckResponse, options: ReportOptions
     drawSignature(doc, M.left + 130, y);
     doc.text(`/ ${DIRECTOR_NAME} /`, M.left + 240, y + 6);
 
-    // Stamp
-    drawStamp(doc, M.left + 390, y + 5, 30);
+    // Stamp (realistic size ~40pt radius)
+    drawStamp(doc, M.left + 390, y + 5, 40);
 
     // ══════════════════════════════════════════════════════════════
-    // PAGE NUMBERS (all pages)
+    // UPSELL: Services block (clickable links)
     // ══════════════════════════════════════════════════════════════
-    const totalPages = doc.bufferedPageRange().count;
+    ensureSpace(130);
+    y += 50;
+
+    doc.moveTo(M.left, y).lineTo(M.left + CW, y).lineWidth(0.5).strokeColor(C.gray200).stroke();
+    y += 14;
+
+    doc.fillColor(C.black).font('B').fontSize(11).text('Исправим нарушения за вас', M.left, y);
+    y += 16;
+    doc.fillColor(C.gray500).font('R').fontSize(8).text(
+      `Потенциальные штрафы: до ${formatFine(data.totalMaxFine)} — дешевле исправить, чем платить.`,
+      M.left, y, { width: CW },
+    );
+    y += 16;
+
+    // Standard tier
+    const stdUrl = `${BRAND_URL}/pricing`;
+    doc.roundedRect(M.left, y, CW, 42, 4).lineWidth(1.5).strokeColor(C.primary).stroke();
+    doc.roundedRect(M.left, y, CW, 42, 4).fill('#F5F3FF');
+    doc.rect(M.left, y, 4, 42).fill(C.primary);
+    doc.fillColor(C.primary).font('B').fontSize(9).text('СТАНДАРТ — 9 990 ₽', M.left + 14, y + 8);
+    doc.fillColor(C.gray700).font('R').fontSize(7.5).text(
+      `Автоисправление всех ${data.stats.violations} нарушений через SSH/FTP · Бэкап · Повторная проверка · Отчёт`,
+      M.left + 14, y + 22, { width: CW - 130 },
+    );
+    doc.fillColor(C.primary).font('SB').fontSize(8)
+      .text('Заказать →', M.left + CW - 110, y + 14, { width: 100, align: 'right', link: stdUrl });
+    y += 50;
+
+    // Premium tier
+    doc.roundedRect(M.left, y, CW, 42, 4).lineWidth(0.5).strokeColor(C.gray200).stroke();
+    doc.rect(M.left, y, 4, 42).fill(C.medium);
+    doc.fillColor(C.gray900).font('B').fontSize(9).text('ВСЁ + ЭКСПЕРТ — 14 990 ₽', M.left + 14, y + 8);
+    doc.fillColor(C.gray700).font('R').fontSize(7.5).text(
+      'Автоисправление + ручная проверка экспертом по интернет-праву · Персональные рекомендации',
+      M.left + 14, y + 22, { width: CW - 130 },
+    );
+    doc.fillColor(C.primary).font('SB').fontSize(8)
+      .text('Заказать →', M.left + CW - 110, y + 14, { width: 100, align: 'right', link: stdUrl });
+    y += 50;
+
+    // Contact links
+    doc.fillColor(C.gray500).font('R').fontSize(7.5);
+    doc.text('Сайт: ', M.left, y, { continued: true });
+    doc.fillColor(C.primary).text(BRAND_URL, { link: BRAND_URL, continued: true });
+    doc.fillColor(C.gray500).text('  ·  Почта: ', { continued: true });
+    doc.fillColor(C.primary).text('info@shtrafometer.ru', { link: 'mailto:info@shtrafometer.ru', continued: true });
+    doc.fillColor(C.gray500).text('  ·  Тел: ', { continued: true });
+    doc.fillColor(C.primary).text('+7 (985) 131-33-23', { link: 'tel:+79851313323' });
+
+    // ══════════════════════════════════════════════════════════════
+    // PAGE NUMBERS (all pages) — skip blank pages
+    // ══════════════════════════════════════════════════════════════
+    const range = doc.bufferedPageRange();
+    const totalPages = range.count;
     for (let i = 0; i < totalPages; i++) {
       doc.switchToPage(i);
       doc.fillColor(C.gray400).font('R').fontSize(7);
