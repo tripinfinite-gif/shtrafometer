@@ -32,72 +32,6 @@ const SITE_TYPE_LABELS: Record<string, string> = {
 
 const PAGE_SIZE = 50;
 
-// ─── Admin Shell (reuse pattern from main admin) ─────────────────────
-
-function AdminShell({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-
-  async function handleLogout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/admin/login');
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white sticky top-0 z-50 border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <a href="/admin" className="flex items-center gap-2">
-              <svg width="26" height="26" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="32" height="32" rx="8" fill="#6C5CE7" />
-                <path d="M16 6L22 9.5V16.5L16 20L10 16.5V9.5L16 6Z" fill="white" fillOpacity="0.9" />
-                <path d="M13 14L15 16.5L19.5 11.5" stroke="#6C5CE7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M10 19L16 22.5L22 19" stroke="white" strokeOpacity="0.5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M10 22L16 25.5L22 22" stroke="white" strokeOpacity="0.3" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="font-bold text-gray-900 text-lg">Штрафометр</span>
-            </a>
-            <div className="hidden sm:flex items-center gap-1">
-              <NavLink href="/admin" label="Заявки" active={false} />
-              <NavLink href="/admin/checks" label="Проверки" active={true} />
-              <NavLink href="/admin/users" label="Домены" active={false} />
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="text-sm text-gray-500 hover:text-red transition-colors cursor-pointer"
-          >
-            Выйти
-          </button>
-        </div>
-      </nav>
-
-      <div className="sm:hidden flex gap-1 px-4 pt-3">
-        <NavLink href="/admin" label="Заявки" active={false} />
-        <NavLink href="/admin/checks" label="Проверки" active={true} />
-        <NavLink href="/admin/users" label="Домены" active={false} />
-      </div>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">{children}</main>
-    </div>
-  );
-}
-
-function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
-  return (
-    <a
-      href={href}
-      className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-        active
-          ? 'bg-primary-lighter text-primary font-medium'
-          : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
-      }`}
-    >
-      {label}
-    </a>
-  );
-}
-
 // ─── Page ─────────────────────────────────────────────────────────────
 
 export default function AdminChecksPage() {
@@ -140,7 +74,9 @@ export default function AdminChecksPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <AdminShell>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Проверки</h1>
+
       {/* Stats cards */}
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
@@ -283,7 +219,7 @@ export default function AdminChecksPage() {
           </div>
         )}
       </div>
-    </AdminShell>
+    </div>
   );
 }
 

@@ -235,3 +235,140 @@ export interface AdminStatsResponse {
   completedOrders: number;
   uniqueDomains: number;
 }
+
+// ─── AI Consultant (Phase 1A) ───────────────────────────────────────
+// План: docs/plan-ai-consultant.md
+
+export interface AiConversation {
+  id: string;
+  userId: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  archived: boolean;
+}
+
+export type AiMessageRole = 'user' | 'assistant' | 'tool' | 'system';
+
+export type AiModelId =
+  | 'openai-gpt-4o'
+  | 'claude-sonnet-4.5'
+  | 'yandexgpt-5-pro';
+
+export interface AiMessage {
+  id: string;
+  conversationId: string;
+  role: AiMessageRole;
+  content: string;
+  toolCalls: unknown | null;
+  toolResult: unknown | null;
+  modelUsed: AiModelId | null;
+  tokensInput: number;
+  tokensOutput: number;
+  cacheReadTokens: number;
+  createdAt: string;
+}
+
+export type AiKnowledgeSourceType = 'rss' | 'blog' | 'tg' | 'manual' | 'api-doc';
+export type AiKnowledgeLayer = 'facts' | 'practices' | 'cases' | 'news' | 'legal';
+
+export interface AiKnowledgeChunk {
+  id: string;
+  sourceId: string | null;
+  sourceUrl: string | null;
+  sourceType: AiKnowledgeSourceType;
+  title: string;
+  content: string;
+  /** vector(1024) — обычно не вытаскивается клиенту */
+  embedding?: number[] | null;
+  tags: string[];
+  layer: AiKnowledgeLayer;
+  publishedAt: string | null;
+  ingestedAt: string;
+  ttlDays: number | null;
+}
+
+export type AiOAuthProvider = 'yandex-direct' | 'yandex-metrika' | 'yandex-webmaster';
+
+export interface AiClientOAuthToken {
+  id: string;
+  userId: string;
+  provider: AiOAuthProvider;
+  /** bytea — pgp_sym_encrypt; никогда не сериализуется на клиент */
+  accessTokenEncrypted: Buffer;
+  refreshTokenEncrypted: Buffer | null;
+  expiresAt: string | null;
+  scope: string | null;
+  clientLogin: string | null;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export type AiAuditAction =
+  | 'tool_proposed'
+  | 'tool_approved'
+  | 'tool_denied'
+  | 'tool_executed';
+
+export interface AiAuditLogEntry {
+  id: string;
+  userId: string;
+  conversationId: string | null;
+  action: AiAuditAction;
+  toolName: string;
+  toolArgs: unknown | null;
+  toolResult: unknown | null;
+  createdAt: string;
+}
+
+// ─── Decision Log (Phase D1) ────────────────────────────────────────
+
+export type AdDecisionType = 'bid_change' | 'budget_change' | 'campaign_toggle' | 'creative_change' | 'strategy_change' | 'targeting_change' | 'negative_keywords' | 'other';
+export type AdDecisionOutcome = 'pending' | 'positive' | 'negative' | 'neutral' | 'inconclusive';
+
+export interface AdDecision {
+  id: string;
+  createdAt: string;
+  decisionType: AdDecisionType;
+  channelId: string;
+  campaignId: string | null;
+  campaignName: string | null;
+  beforeValue: unknown;
+  afterValue: unknown;
+  hypothesis: string | null;
+  tags: string[];
+  outcome: AdDecisionOutcome;
+  outcomeComment: string | null;
+  outcomeAssessedAt: string | null;
+  actor: 'admin' | 'ai-consultant';
+  conversationId: string | null;
+  auditLogId: string | null;
+  metadata: unknown;
+}
+
+export interface AdDecisionSnapshot {
+  id: string;
+  decisionId: string;
+  snapshotType: 'before' | 'after';
+  periodStart: string;
+  periodEnd: string;
+  metrics: {
+    impressions?: number;
+    clicks?: number;
+    spend_kopecks?: number;
+    conversions?: number;
+    ctr?: number;
+    cpa_kopecks?: number;
+    roi_percent?: number;
+  };
+}
+
+export interface AdDecisionAnnotation {
+  id: string;
+  createdAt: string;
+  decisionType: AdDecisionType;
+  channelId: string;
+  campaignName: string | null;
+  hypothesis: string | null;
+  outcome: AdDecisionOutcome;
+}

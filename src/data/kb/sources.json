@@ -1,0 +1,82 @@
+{
+  "version": "0.1",
+  "generatedAt": "2026-04-16",
+  "description": "Каталог источников знаний AI-консультанта Штрафометра. Поле `ingested` говорит, включён ли источник в статический корпус (direct-core.md). Фаза 4 добавит RAG по источникам с ingested=false.",
+  "sources": [
+    {
+      "id": "marketing-strategy-2026",
+      "path": "docs/marketing-strategy-2026.md",
+      "layer": "facts",
+      "ingested": true,
+      "notes": "Customer DNA, юнит-экономика, стратегия Директа, кампании 709*, план лендингов"
+    },
+    {
+      "id": "claude-md",
+      "path": "CLAUDE.md",
+      "layer": "facts",
+      "ingested": true,
+      "notes": "Карта репо, стек, деплой, цели Метрики, счётчик 108525306"
+    },
+    {
+      "id": "fines",
+      "path": "src/checks/fines.ts",
+      "layer": "facts",
+      "ingested": true,
+      "notes": "28 категорий штрафов, суммы, статьи КоАП"
+    },
+    {
+      "id": "avatar",
+      "path": ".business/audience/avatar.md",
+      "layer": "facts",
+      "ingested": true,
+      "notes": "Customer DNA, три горячих сегмента"
+    },
+    {
+      "id": "pricing",
+      "path": ".business/products/pricing.md",
+      "layer": "facts",
+      "ingested": false,
+      "notes": "Детали тарифов — ingest на Фазе 4"
+    },
+    {
+      "id": "unit-economics",
+      "path": ".business/economics/unit-economics.md",
+      "layer": "facts",
+      "ingested": true,
+      "notes": "ARPU 5100, LTV 7470, CAC target 4000"
+    },
+    {
+      "id": "monthly-goals",
+      "path": ".business/goals/monthly.md",
+      "layer": "live",
+      "ingested": false,
+      "notes": "Меняется ежемесячно — живой источник через MCP на Фазе 4"
+    },
+    {
+      "id": "master-plan",
+      "path": "docs/MASTER-PLAN.md",
+      "layer": "facts",
+      "ingested": false,
+      "notes": "Этапы реализации v2. Ingest при стабилизации плана"
+    },
+    {
+      "id": "rf-compliance",
+      "path": "rf_website_compliance.md",
+      "layer": "facts",
+      "ingested": false,
+      "notes": "55 пунктов чек-листа — большой, требует chunking и RAG"
+    },
+    {
+      "id": "blog-articles",
+      "path": "src/app/blog/**/*.md",
+      "layer": "facts",
+      "ingested": false,
+      "notes": "50 статей блога. На Фазе 4 — векторная индексация и RAG"
+    }
+  ],
+  "layers": {
+    "facts": "Статические знания: законы, юнит-экономика, продукт. Меняются редко.",
+    "live": "Динамические данные: кампании Директа, Метрика, заявки. Получаются через инструменты.",
+    "procedural": "HITL-политика, шаблоны diff-ов, правила безопасности (встроено в system-prompt)."
+  }
+}

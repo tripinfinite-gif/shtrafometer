@@ -29,7 +29,10 @@ export async function query<T extends Record<string, unknown> = Record<string, u
 
 // ─── Schema migration ──────────────────────────────────────────────
 
+let _schemaReady = false;
+
 export async function ensureSchema(): Promise<void> {
+  if (_schemaReady) return;
   await query(`
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
@@ -186,4 +189,149 @@ export async function ensureSchema(): Promise<void> {
   await query(`ALTER TABLE otp_codes ALTER COLUMN phone DROP NOT NULL`).catch(() => { /* already nullable */ });
   await query(`ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS email TEXT`);
   await query(`CREATE INDEX IF NOT EXISTS idx_otp_email ON otp_codes (email, created_at DESC) WHERE email IS NOT NULL`);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // AI Consultant (Phase 1A) — extensions, tables, indexes
+  // План: docs/plan-ai-consultant.md
+  // ═══════════════════════════════════════════════════════════════════
+
+  // ─── Extensions ────────────────────────────────────────────────────
+  // pgcrypto: gen_random_uuid() + pgp_sym_encrypt/decrypt for OAuth tokens
+  // vector:   pgvector для embeddings (multilingual-e5-large, 1024 dim)
+  await query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`);
+  await query(`CREATE EXTENSION IF NOT EXISTS vector`);
+
+  // ─── 1. AI conversations ──────────────────────────────────────────
+  await query(`
+    CREATE TABLE IF NOT EXISTS ai_conversations (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id TEXT NOT NULL DEFAULT 'admin',
+      title TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      archived BOOLEAN NOT NULL DEFAULT FALSE
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_ai_conversations_user ON ai_conversations (user_id, updated_at DESC)`);
+
+  // ─── 2. AI messages ───────────────────────────────────────────────
+  await query(`
+    CREATE TABLE IF NOT EXISTS ai_messages (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      conversation_id UUID NOT NULL REFERENCES ai_conversations(id) ON DELETE CASCADE,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL DEFAULT '',
+      tool_calls JSONB,
+      tool_result JSONB,
+      model_used TEXT,
+      tokens_input INTEGER NOT NULL DEFAULT 0,
+      tokens_output INTEGER NOT NULL DEFAULT 0,
+      cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_ai_messages_conversation ON ai_messages (conversation_id, created_at)`);
+
+  // ─── 3. AI knowledge chunks (RAG) ─────────────────────────────────
+  await query(`
+    CREATE TABLE IF NOT EXISTS ai_knowledge_chunks (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      source_id TEXT,
+      source_url TEXT,
+      source_type TEXT NOT NULL DEFAULT 'manual',
+      title TEXT NOT NULL DEFAULT '',
+      content TEXT NOT NULL,
+      embedding vector(1024),
+      tags TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+      layer TEXT NOT NULL DEFAULT 'facts',
+      published_at TIMESTAMPTZ,
+      ingested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      ttl_days INTEGER
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_ai_kb_embedding ON ai_knowledge_chunks USING hnsw (embedding vector_cosine_ops)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_ai_kb_source ON ai_knowledge_chunks (source_type, ingested_at DESC)`);
+
+  // ─── 4. AI client OAuth tokens (encrypted via pgcrypto) ───────────
+  await query(`
+    CREATE TABLE IF NOT EXISTS ai_client_oauth_tokens (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id TEXT NOT NULL DEFAULT 'admin',
+      provider TEXT NOT NULL,
+      access_token_encrypted BYTEA NOT NULL,
+      refresh_token_encrypted BYTEA,
+      expires_at TIMESTAMPTZ,
+      scope TEXT,
+      client_login TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_used_at TIMESTAMPTZ
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_ai_oauth_user_provider ON ai_client_oauth_tokens (user_id, provider)`);
+  // Phase 3D — unique (user_id, provider) для UPSERT токенов через pgcrypto
+  await query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_oauth_user_provider_unique ON ai_client_oauth_tokens(user_id, provider)`);
+
+  // ─── 5. AI audit log (HITL tool calls) ────────────────────────────
+  await query(`
+    CREATE TABLE IF NOT EXISTS ai_audit_log (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id TEXT NOT NULL DEFAULT 'admin',
+      conversation_id UUID,
+      action TEXT NOT NULL,
+      tool_name TEXT NOT NULL,
+      tool_args JSONB,
+      tool_result JSONB,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_ai_audit_user_created ON ai_audit_log (user_id, created_at DESC)`);
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Decision Log (Phase D1) — журнал решений по рекламе
+  // План: docs/plan-decision-log.md
+  // ═══════════════════════════════════════════════════════════════════
+
+  // ─── 1. Ad decisions ──────────────────────────────────────────────
+  await query(`
+    CREATE TABLE IF NOT EXISTS ad_decisions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      decision_type TEXT NOT NULL,
+      channel_id TEXT NOT NULL,
+      campaign_id TEXT,
+      campaign_name TEXT,
+      before_value JSONB,
+      after_value JSONB,
+      hypothesis TEXT,
+      tags TEXT[] DEFAULT '{}',
+      outcome TEXT DEFAULT 'pending',
+      outcome_comment TEXT,
+      outcome_assessed_at TIMESTAMPTZ,
+      actor TEXT NOT NULL DEFAULT 'admin',
+      conversation_id UUID,
+      audit_log_id UUID,
+      metadata JSONB DEFAULT '{}'
+    )
+  `);
+
+  // ─── 2. Ad decision snapshots ─────────────────────────────────────
+  await query(`
+    CREATE TABLE IF NOT EXISTS ad_decision_snapshots (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      decision_id UUID NOT NULL REFERENCES ad_decisions(id) ON DELETE CASCADE,
+      snapshot_type TEXT NOT NULL,
+      period_start DATE NOT NULL,
+      period_end DATE NOT NULL,
+      metrics JSONB NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE (decision_id, snapshot_type)
+    )
+  `);
+
+  // ─── Ad decisions indexes ─────────────────────────────────────────
+  await query(`CREATE INDEX IF NOT EXISTS idx_ad_decisions_created ON ad_decisions (created_at DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_ad_decisions_channel ON ad_decisions (channel_id, created_at DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_ad_decisions_outcome ON ad_decisions (outcome) WHERE outcome = 'pending'`);
+
+  _schemaReady = true;
 }

@@ -23,69 +23,6 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: str
   cancelled: { label: 'Отменена', color: '#6B7280', bg: '#F3F4F6' },
 };
 
-// ─── Admin Shell ──────────────────────────────────────────────────────
-
-function AdminShell({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  const router = useRouter();
-
-  async function handleLogout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/admin/login');
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white sticky top-0 z-50 border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <span className="font-semibold text-primary text-lg">Штрафометр</span>
-            <div className="hidden sm:flex items-center gap-1">
-              <NavLink href="/admin" label="Заявки" active={title === 'Заявки'} />
-              <NavLink href="/admin/checks" label="Проверки" active={title === 'Проверки'} />
-              <NavLink href="/admin/users" label="Домены" active={title === 'Домены'} />
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="text-sm text-gray-500 hover:text-red transition-colors cursor-pointer"
-          >
-            Выйти
-          </button>
-        </div>
-      </nav>
-
-      <div className="sm:hidden flex gap-1 px-4 pt-3">
-        <NavLink href="/admin" label="Заявки" active={title === 'Заявки'} />
-        <NavLink href="/admin/checks" label="Проверки" active={title === 'Проверки'} />
-        <NavLink href="/admin/users" label="Домены" active={title === 'Домены'} />
-      </div>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">{children}</main>
-    </div>
-  );
-}
-
-function NavLink({ href, label, active }: { href: string; label: string; active: boolean }) {
-  return (
-    <a
-      href={href}
-      className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-        active
-          ? 'bg-primary-lighter text-primary font-medium'
-          : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
-      }`}
-    >
-      {label}
-    </a>
-  );
-}
-
 // ─── Users/Domains Page ───────────────────────────────────────────────
 
 export default function AdminUsersPage() {
@@ -129,7 +66,9 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <AdminShell title="Домены">
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Домены</h1>
+
       {/* Search */}
       <div className="mb-4">
         <input
@@ -182,7 +121,7 @@ export default function AdminUsersPage() {
           </table>
         </div>
       </div>
-    </AdminShell>
+    </div>
   );
 }
 
@@ -208,7 +147,7 @@ function DomainRow({
         className="border-b border-gray-100 hover:bg-primary-lighter/50 cursor-pointer transition-colors"
       >
         <td className="px-4 py-3 text-primary font-medium">
-          <span className="mr-2 text-gray-400 text-xs">{expanded ? '▼' : '▶'}</span>
+          <span className="mr-2 text-gray-400 text-xs">{expanded ? '\u25BC' : '\u25B6'}</span>
           {domain.domain}
         </td>
         <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
